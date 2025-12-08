@@ -1,0 +1,47 @@
+FROM python:3.13-slim as builder
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONFAULTHANDLER=1
+ENV PYTHONHASHSEED=random
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_DEFAULT_TIMEOUT=100
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.13-slim as runtime
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.13/site-packages/ /usr/local/lib/python3.13/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+RUN useradd -m {{ app_user|default('appuser') }}
+
+WORKDIR /app
+RUN mkdir -p /app/staticfiles && chown -R {{ app_user|default('appuser') }}:{{ app_user|default('appuser') }} /app
+
+COPY --chown={{ app_user|default('appuser') }}:{{ app_user|default('appuser') }} . .
+COPY --chown={{ app_user|default('appuser') }}:{{ app_user|default('appuser') }} entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+USER {{ app_user|default('appuser') }}
+
+EXPOSE {{ port|default('8000') }}
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "{{ port|default('8000') }}", "{{ asgi_module|default('app.asgi:application') }}"]

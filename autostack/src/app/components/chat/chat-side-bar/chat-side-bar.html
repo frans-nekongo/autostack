@@ -1,0 +1,32 @@
+<nav class="flex flex-col min-w-72 max-w-xs h-screen p-4 border-r border-r-slate-500 border-opacity-15 gap-5">
+
+    <div class="flex flex-col gap-3">
+        <a class="flex items-center gap-1 px-2 py-1" routerLink="/chat"
+            routerLinkActive="bg-ocean-100 text-ocean-700 font-medium rounded">
+            <ng-icon name="heroPencilSquare" class="text-ocean-500" size="20"></ng-icon>
+            <p class="text-sm  text-slate-700">New Chat</p>
+
+        </a>
+        <a class="flex items-center gap-1 px-2 py-1" routerLink="/projects">
+            <ng-icon name="heroRectangleStack" class="text-ocean-500" size="20"></ng-icon>
+            <p class="text-sm  text-slate-700">Projects</p>
+        </a>
+    </div>
+
+    <div class="flex flex-col gap-3">
+        <p>Recent</p>
+        <div class="flex flex-col gap-1">
+            @if (loading$ | async) {
+            <p>Loading ...</p>
+            }
+            @for (chat of chats$ | async; track $index) {
+            <a [routerLink]="['/chat', chat.id]" routerLinkActive="bg-ocean-100 text-ocean-700 font-medium rounded">
+                <p class="px-2 py-1 text-slate-900">{{chat.chatTitle}}</p>
+            </a>
+
+            }
+
+        </div>
+    </div>
+
+</nav>

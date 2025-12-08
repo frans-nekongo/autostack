@@ -1,0 +1,52 @@
+<div 
+  class="w-full h-screen overflow-hidden relative cursor-default"
+  cdkDropList 
+  (cdkDropListDropped)="onDrop($event)"
+  (mousedown)="onCanvasMouseDown($event)"
+  (mousemove)="onCanvasMouseMove($event)" 
+  (mouseup)="onCanvasMouseUp()" 
+  (wheel)="onCanvasWheel($event)"
+  [style.background]="settings.gridEnabled ? 'url(data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;' + settings.gridSize + '&quot; height=&quot;' + settings.gridSize + '&quot;><rect width=&quot;' + settings.gridSize + '&quot; height=&quot;' + settings.gridSize + '&quot; fill=&quot;none&quot; stroke=&quot;rgba(0,0,0,0.1)&quot; stroke-width=&quot;1&quot;/></svg>)' : settings.backgroundColor"
+  >
+  
+  @for (component of components; track component.id) {
+    <div
+       class="component"
+       [ngClass]="{'component-database': component.type === ComponentType.DATABASE,
+                   'component-api': component.type === ComponentType.API,
+                   'component-service': component.type === ComponentType.SERVICE}"
+       [style]="getComponentStyle(component)"
+       cdkDrag
+       (cdkDragStarted)="onComponentDragStarted(component)"
+       (cdkDragDropped)="onComponentDragEnded(component, $event)"
+       (click)="onComponentClick(component, $event)">
+    <div class="component-icon">
+      <i class="icon-{{component.metadata.icon}}"></i>
+    </div>
+    <div class="component-name">{{component.name}}</div>
+    <div class="resize-handle se" 
+         (mousedown)="onResizeMouseDown($event, component, 'se')"
+         *ngIf="selection.selectedComponents.includes(component.id)"></div>
+    <div class="resize-handle sw" 
+         (mousedown)="onResizeMouseDown($event, component, 'sw')"
+         *ngIf="selection.selectedComponents.includes(component.id)"></div>
+    <div class="resize-handle ne" 
+         (mousedown)="onResizeMouseDown($event, component, 'ne')"
+         *ngIf="selection.selectedComponents.includes(component.id)"></div>
+    <div class="resize-handle nw" 
+         (mousedown)="onResizeMouseDown($event, component, 'nw')"
+         *ngIf="selection.selectedComponents.includes(component.id)"></div>
+  </div>
+  <div *ngIf="contextMenu" class="context-menu" 
+       [style]="{'left.px': contextMenu.x, 'top.px': contextMenu.y}">
+    <div class="context-menu-item" 
+         (click)="onContextMenuAction('delete', contextMenu.componentId)"
+         *ngIf="contextMenu.componentId">Delete</div>
+    <div class="context-menu-item" 
+         (click)="onContextMenuAction('duplicate', contextMenu.componentId)"
+         *ngIf="contextMenu.componentId">Duplicate</div>
+    <div class="context-menu-item" 
+         (click)="closeContextMenu()">Close</div>
+  </div>
+  }
+</div>

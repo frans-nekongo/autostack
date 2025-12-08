@@ -1,0 +1,107 @@
+.canvas-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+
+  &.cdk-drop-list-dragging {
+    cursor: move;
+  }
+}
+
+.component {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  user-select: none;
+  cursor: move;
+
+  &.cdk-drag-preview {
+    opacity: 0.8;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 250ms ease;
+  }
+
+  &.component-database {
+    border-radius: 50%;
+    transform: rotateX(45deg);
+  }
+
+  &.component-api {
+    border-radius: 8px;
+    border: 2px dashed #666;
+  }
+
+  &.component-service {
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px inset #666;
+  }
+}
+
+.component-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.component-name {
+  font-size: 14px;
+  text-align: center;
+  padding: 0 8px;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #000;
+  border: 1px solid #fff;
+  cursor: pointer;
+
+  &.se {
+    bottom: -4px;
+    right: -4px;
+    cursor: se-resize;
+  }
+
+  &.sw {
+    bottom: -4px;
+    left: -4px;
+    cursor: sw-resize;
+  }
+
+  &.ne {
+    top: -4px;
+    right: -4px;
+    cursor: ne-resize;
+  }
+
+  &.nw {
+    top: -4px;
+    left: -4px;
+    cursor: nw-resize;
+  }
+}
+
+.context-menu {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.context-menu-item:hover {
+  background: #f0f0f0;
+}

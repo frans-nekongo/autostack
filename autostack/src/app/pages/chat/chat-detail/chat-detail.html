@@ -1,0 +1,111 @@
+<div class="flex flex-col h-full w-full overflow-hidden px-32 py-16">
+  <!-- main content area -->
+  <div class="flex-col flex-1 overflow-y-auto">
+    <div class="flex justify-end">
+      <div
+        class="flex justify-end max-w-[50%] p-5 bg-ocean-50 rounded-tr-lg rounded-br-lg rounded-tl-lg rounded-bl-none">
+        <p class="text-sm">{{ (currentChat$ | async)?.prompt }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 mt-10">
+      <div class="flex justify-between">
+        <p class="text-xl">Generated Schema</p>
+        <button class="flex items-center bg-ocean-500 py-1 px-2 rounded" (click)="onGenerateProject()">
+          <p class="text-sm text-white-900">Generate Project</p>
+        </button>
+      </div>
+      @if ((currentChat$ | async)?.initialSchema.project) {
+      <div class="flex flex-col gap-4">
+
+        <p class="text-lg">Project Details</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="py-2 border-b border-ocean-300 bg-ocean-100 rounded-t-lg" colspan="2">
+                <p class="block text-sm antialiased leading-normal text-slate-900">Project Details</p>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="rounded-b-lg">
+            <tr class="even:bg-ocean-50/50">
+              <td class="p-2">
+                <p class="block text-sm antialiased leading-normal text-slate-500">Name</p>
+              </td>
+              <td class="p-2">
+                <p class="block text-sm antialiased leading-normal text-slate-500">{{ (currentChat$ |
+                  async)?.initialSchema.project.name }}</p>
+              </td>
+            </tr>
+            <tr class="even:bg-ocean-50/50">
+              <td class="p-2">
+                <p class="block text-sm antialiased leading-normal text-slate-500">Description</p>
+              </td>
+              <td class="p-2">
+                <p class="block text-sm antialiased leading-normal text-slate-500">{{ (currentChat$ |
+                  async)?.initialSchema.project.description }}</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="text-lg mt-4">Components</p>
+
+        <div class="flex gap-3">
+
+          @for (item of (currentChat$ | async)?.initialSchema.components; track $index) {
+
+          <div class="flex items-center gap-2">
+
+            @if (item.framework.toLowerCase() !== 'none') {
+            <ng-icon [name]="getIcon(item.framework)" class=" text-slate-500" size="30"></ng-icon>
+            } @else if (item.technology.toLowerCase() !== 'none') {
+            <ng-icon [name]="getIcon(item.technology)" class=" text-slate-500" size="30"></ng-icon>
+            }
+            <p class="text-lg">{{item.name}}</p>
+          </div>
+
+          }
+        </div>
+
+        <p class="text-lg mt-4">Connections</p>
+
+        <div class="flex gap-3">
+
+          @for (item of (currentChat$ | async)?.initialSchema.connections; track $index) {
+
+          <div class="flex items-center gap-2">
+            <p>{{item.source}} -> {{item.target}}</p>
+          </div>
+
+          }
+        </div>
+
+        <a class="max-w-fit border-b border-ocean-500 text-ocean-500 flex items-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clip-path="url(#clip0_55_314)">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M11.875 18.125L4.375 15V5.00003L11.875 1.87503V18.125ZM3.26875 16.57C3.04106 16.475 2.84656 16.3148 2.70976 16.1095C2.57296 15.9042 2.49998 15.663 2.5 15.4163V4.58378C2.49998 4.33707 2.57296 4.09587 2.70976 3.89056C2.84656 3.68525 3.04106 3.52502 3.26875 3.43003L11.1538 0.143783C11.4387 0.0250248 11.7486 -0.0215275 12.0559 0.00825979C12.3632 0.0380471 12.6584 0.143252 12.9152 0.314533C13.1721 0.485815 13.3827 0.717872 13.5283 0.9901C13.6739 1.26233 13.7501 1.5663 13.75 1.87503V2.50003H15.3125C16.52 2.50003 17.5 3.47878 17.5 4.68753V15.3125C17.5 15.8927 17.2695 16.4491 16.8593 16.8593C16.4491 17.2696 15.8927 17.5 15.3125 17.5H13.75V18.125C13.7501 18.4338 13.6739 18.7377 13.5283 19.01C13.3827 19.2822 13.1721 19.5143 12.9152 19.6855C12.6584 19.8568 12.3632 19.962 12.0559 19.9918C11.7486 20.0216 11.4387 19.975 11.1538 19.8563L3.26875 16.57ZM13.75 15.625H15.3125C15.3954 15.625 15.4749 15.5921 15.5335 15.5335C15.5921 15.4749 15.625 15.3954 15.625 15.3125V4.68753C15.625 4.60465 15.5921 4.52517 15.5335 4.46656C15.4749 4.40796 15.3954 4.37503 15.3125 4.37503H13.75V15.625Z"
+                fill="#3a6ea5" />
+            </g>
+            <defs>
+              <clipPath id="clip0_55_314">
+                <rect width="20" height="20" fill="black" />
+              </clipPath>
+            </defs>
+          </svg>
+          <p class="">
+            Open created project
+          </p>
+        </a>
+
+
+      </div>
+
+      }
+    </div>
+
+  </div>
+
+</div>

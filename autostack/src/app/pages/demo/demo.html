@@ -1,0 +1,11 @@
+<button (click)="getData()">Get Data</button>
+
+<p *ngIf="loading">Loading...</p>
+<div *ngIf="error" class="error">{{ error }}</div>
+<div *ngFor="let item of responses; let i = index;">
+    <p>Response ID: {{item.responseId}}</p>
+    <p>Message: {{item.responseMessage}}</p>
+    <p>Status: {{item.statusCode}}</p>
+</div>
+<div *ngIf="!loading">
+</div>

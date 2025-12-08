@@ -1,0 +1,20 @@
+<header class="flex w-full border-b border-b-slate-500 border-opacity-15 p-4 justify-between items-center">
+    <div>
+        <a href="/">
+            <app-logo name="logo" width="32px" height="32px" color="blue"></app-logo>
+        </a>
+        <p>{{ pageTitle }}</p>
+    </div>
+    <div class="nav-options"></div>
+
+    <div id="actions" class="flex  gap-3">
+        <a class="flex items-center" href="/chat">
+            <ng-icon name="heroSparklesSolid" class="text-ocean-500" size="20"></ng-icon>
+            <p class="text-sm text-slate-700">Chats</p>
+        </a>
+        <a class="flex items-center">
+            <ng-icon name="saxNotificationBold" class="text-ocean-500" size="20"></ng-icon>
+            <p class="text-sm text-slate-700">Notifications</p>
+        </a>
+    </div>
+</header>

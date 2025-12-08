@@ -1,0 +1,73 @@
+@font-face {
+  font-family: 'SpaceMono';
+  src: url('/assets/fonts/SpaceMono-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SpaceMono';
+  src: url('/assets/fonts/SpaceMono-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'SpaceMono';
+  src: url('/assets/fonts/SpaceMono-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SpaceMono';
+  src: url('/assets/fonts/SpaceMono-BoldItalic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/assets/fonts/Manrope.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// Ensure full height layout
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+
+// CodeMirror styling overrides
+.cm-editor {
+  height: 100% !important;
+  border: none !important;
+  
+  .cm-content {
+    padding: 16px !important;
+  }
+  
+  .cm-focused {
+    outline: none !important;
+  }
+  
+  .cm-line {
+    padding: 0 4px !important;
+  }
+}
+
+// Resizer styling
+.cursor-col-resize {
+  cursor: col-resize;
+}
+
+.cursor-col-resize:hover {
+  background-color: #60a5fa !important;
+}

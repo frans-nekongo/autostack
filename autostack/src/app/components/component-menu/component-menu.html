@@ -1,0 +1,280 @@
+<div class="w-full h-full bg-white border-r border-gray-200 shadow-sm flex flex-col"
+    [class.collapsed]="isCollapsed">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+        @if (!isCollapsed) {
+        <h3 class="font-semibold text-gray-800 text-sm">
+            Components
+        </h3>
+        }
+        <button (click)="toggleCollapse()" class="p-1 rounded-md hover:bg-gray-200 transition-colors duration-200">
+            <svg class="w-4 h-4 text-gray-600" [class.rotate-180]="isCollapsed"
+                style="transition: transform 0.2s ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+    </div>
+
+
+    <!-- Category Tabs -->
+    @if (!isCollapsed) {
+    <div class="flex-shrink-0 border-b border-gray-100">
+        <div class="px-2 py-2 space-y-1 max-h-32 overflow-y-auto">
+            @for (category of categories; track $index) {
+            <button (click)="setActiveCategory(category)"
+                class="w-full flex items-center px-2 py-1.5 text-xs font-medium rounded-md transition-colors duration-150"
+                [class.bg-blue-100]="activeCategory === category" [class.text-blue-700]="activeCategory === category"
+                [class.text-gray-600]="activeCategory !== category"
+                [class.hover:bg-gray-100]="activeCategory !== category">
+
+                <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Dynamic icons based on category -->
+                    @if (getCategoryIcon(category) === 'database') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                    </path>
+                    }
+
+                    @if (getCategoryIcon(category) === 'cpu') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                    </path>
+                    }
+
+                    @if (getCategoryIcon(category) === 'globe') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'hard-drive') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'shield') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'link') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'monitor') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                    }
+
+                </svg>
+
+                {{ getCategoryDisplayName(category) }}
+            </button>
+            }
+        </div>
+    </div>
+    }
+
+    <!-- Component Items -->
+    @if (!isCollapsed) {
+    <div class="flex-1 overflow-y-auto p-2">
+        <div class="space-y-2">
+            @for (template of getTemplatesForCategory(activeCategory); track $index) {
+            <div cdkDrag [cdkDragData]="template" (cdkDragStarted)="onDragStarted($event, template)"
+                (cdkDragEnded)="onDragEnded($event)"
+                class="component-item group cursor-move select-none bg-white border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all duration-200"
+                [style.border-color]="template.color + '40'" [class.dragging]="dragPreview === template">
+
+                <!-- Component Icon and Info -->
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-white text-sm font-medium"
+                        [style.background-color]="template.color">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <!-- Database icon -->
+                            @if (template.icon === 'database') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                            </path>
+
+                            }
+                            <!-- Globe icon -->
+                            @if (template.icon === 'globe') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9">
+                            </path>
+
+                            }
+                            <!-- CPU icon -->
+                            @if (template.icon === 'cpu') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                            </path>
+
+                            }
+                            <!-- Zap icon (cache) -->
+                            @if (template.icon === 'zap') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+
+
+                            }
+                            <!-- Box icon -->
+                            @if (template.icon === 'box') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+
+
+                            }
+                            <!-- Monitor icon -->
+                            @if (template.icon === 'monitor') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+
+
+                            }
+                            <!-- List icon (queue) -->
+                            @if (template.icon === 'list') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+
+                            }
+                            <!-- Folder icon -->
+                            @if (template.icon === 'folder') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+
+                            }
+                            <!-- Shuffle icon (load balancer) -->
+                            @if (template.icon === 'shuffle') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z">
+                            </path>
+
+
+                            }
+                            <!-- Shield icon (gateway) -->
+                            @if (template.icon === 'shield') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                            }
+                            <!-- Cloud icon -->
+                            @if (template.icon === 'cloud') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
+                            </path>
+                            }
+                            <!-- External link icon -->
+                            @if (template.icon === 'external-link') {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            }
+                        </svg>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-medium text-gray-900 truncate">
+                            {{ template.defaultName }}
+                        </h4>
+                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                            {{ template.description }}
+                        </p>
+                        <span class="inline-block text-xs text-gray-400 mt-1">
+                            {{ template.defaultProperties.technology }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Drag indicator -->
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-50 transition-opacity duration-200">
+                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path>
+                    </svg>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+
+    }
+
+    <!-- Collapsed state -->
+    @if (isCollapsed) {
+        <div class="flex flex-col items-center py-4 space-y-3">
+            @for (category of categories; track $index) {
+                <button  (click)="setActiveCategory(category)"
+                    class="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-medium transition-all duration-200 hover:scale-105"
+                    [class.ring-2]="activeCategory === category" [class.ring-blue-400]="activeCategory === category"
+                    [style.background-color]="'#6B7280'">
+        
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @if (getCategoryIcon(category) === 'database') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                    </path>
+                    }
+
+                    @if (getCategoryIcon(category) === 'cpu') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                    </path>
+                    }
+
+                    @if (getCategoryIcon(category) === 'globe') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'hard-drive') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'shield') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'link') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                    </path>
+
+                    }
+                    @if (getCategoryIcon(category) === 'monitor') {
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                    }
+                    </svg>
+                </button>
+            }
+        </div>
+
+    }
+</div>
+
+<!-- Drag Preview (shown during drag) -->
+ @if (dragPreview) {
+     <div class="fixed pointer-events-none z-50 opacity-75" style="top: -1000px; left: -1000px;">
+         <div class="bg-white border-2 rounded-lg p-2 shadow-lg" [style.border-color]="dragPreview.color">
+             <div class="flex items-center space-x-2">
+                 <div class="w-6 h-6 rounded flex items-center justify-center text-white text-xs"
+                     [style.background-color]="dragPreview.color">
+                     <!-- Icon would go here -->
+                 </div>
+                 <span class="text-sm font-medium text-gray-900">{{ dragPreview.defaultName }}</span>
+             </div>
+         </div>
+     </div>
+ }

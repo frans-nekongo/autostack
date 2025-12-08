@@ -1,0 +1,184 @@
+{
+    "project": {
+        "name": "Aegis",
+        "author": "Sakaria Nghivafe",
+        "description": "An HR System",
+        "version": "0.1.0",
+        "status": "created",
+        "metadata": {
+            "created_date": "2025-10-11T21:02:59.879969",
+            "last_modified": "2025-10-11T21:02:59.879979",
+            "tags": [
+                "HR",
+                "Automated"
+            ],
+            "environment": null,
+            "directory": "/home/sakarianghivafe/Documents/projects/autostack/created/Aegis"
+        },
+        "created_at": {
+            "$date": "2025-10-11T21:02:59.880Z"
+        },
+        "updated_at": {
+            "$date": "2025-10-11T21:02:59.880Z"
+        }
+    },
+    "technologies": [
+        {
+            "name": "python",
+            "version": "latest",
+            "category": "runtime",
+            "port": null,
+            "environment_variables": null,
+            "configuration": null,
+            "enabled": true,
+            "nix_package": "python3",
+            "available_versions": [
+                "3.10",
+                "3.11",
+                "3.12",
+                "latest"
+            ],
+            "created_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            }
+        },
+        {
+            "name": "nodejs",
+            "version": "latest",
+            "category": "runtime",
+            "port": null,
+            "environment_variables": null,
+            "configuration": null,
+            "enabled": true,
+            "nix_package": "nodejs",
+            "available_versions": [
+                "18",
+                "20",
+                "22",
+                "latest"
+            ],
+            "created_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            }
+        },
+        {
+            "name": "postgresql",
+            "version": "latest",
+            "category": "database",
+            "port": null,
+            "environment_variables": null,
+            "configuration": null,
+            "enabled": true,
+            "nix_package": "postgresql",
+            "available_versions": [
+                "14",
+                "15",
+                "16",
+                "latest"
+            ],
+            "created_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            }
+        },
+        {
+            "name": "mongodb",
+            "version": "latest",
+            "category": "database",
+            "port": null,
+            "environment_variables": null,
+            "configuration": null,
+            "enabled": true,
+            "nix_package": "mongodb",
+            "available_versions": [
+                "6.0",
+                "7.0",
+                "latest"
+            ],
+            "created_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-16T19:41:25.175Z"
+            }
+        }
+    ],
+    "components": [
+        {
+            "component_id": "frontend",
+            "type": "web",
+            "name": "UI",
+            "technology": "nodejs",
+            "framework": "angular",
+            "port": 80,
+            "environment_variables": {},
+            "dependencies": [],
+            "status": "running",
+            "directory": "web/frontend",
+            "created_at": {
+                "$date": "2025-10-17T03:48:02.343Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-17T09:13:28.783Z"
+            }
+        },
+        {
+            "component_id": "backend",
+            "type": "api",
+            "name": "user-api",
+            "technology": "python",
+            "framework": "django",
+            "port": 8090,
+            "environment_variables": {},
+            "dependencies": [],
+            "status": "running",
+            "directory": "api/backend",
+            "created_at": {
+                "$date": "2025-10-17T03:48:02.343Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-17T03:49:03.166Z"
+            }
+        },
+        {
+            "component_id": "booking-api",
+            "type": "api",
+            "name": "booking api",
+            "technology": "python",
+            "framework": "django",
+            "port": 9090,
+            "environment_variables": {},
+            "dependencies": [],
+            "status": "running",
+            "directory": "api/booking-api",
+            "created_at": {
+                "$date": "2025-10-17T04:39:47.489Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-17T04:39:52.170Z"
+            }
+        }
+    ],
+    "connections": [
+        {
+            "source": "booking-api",
+            "target": "user-api",
+            "type": "api",
+            "port": null,
+            "created_at": {
+                "$date": "2025-10-17T04:39:47.490Z"
+            },
+            "updated_at": {
+                "$date": "2025-10-17T04:39:47.490Z"
+            }
+        }
+    ]
+}

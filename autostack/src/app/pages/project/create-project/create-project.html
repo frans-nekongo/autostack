@@ -1,0 +1,37 @@
+<section class="h-full w-full flex justify-center gap-6 items-center flex-col ">
+    <div class="flex flex-col items-center gap-5">
+        <h1 class="text-5xl">Welcome to Autostack</h1>
+        <p>Get started by describing your project and the technology stack</p>
+    </div>
+    
+      <div class="w-full max-w-3xl">
+        
+          <!-- Text Area Container -->
+          <div class="p-6">
+            <div class="relative">
+              <textarea
+                [(ngModel)]="prompt"
+                (keydown)="handleKeyDown($event)"
+                placeholder="Type your prompt here... (Press Enter to submit, Shift+Enter for new line)"
+                class="w-full min-h-[50px] max-h-[200px] p-4 pr-14 text-slate-700 placeholder-slate-400 bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+                rows="8"
+              ></textarea>
+              
+              <!-- Character Count -->
+              <div class="absolute bottom-4 left-4 text-sm text-slate-400">
+                {{ prompt.length }} characters
+              </div>
+
+              <!-- Submit Button -->
+              <button
+                (click)="handleSubmit()"
+                [disabled]="!prompt.trim()"
+                class="absolute bottom-4 right-4 p-3 bg-ocean-500 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              >
+                <ng-icon name="heroPaperAirplane" class="w-5 h-5 text-white-900"></ng-icon>
+              </button>
+            </div>
+
+          </div>
+      </div>
+</section>
