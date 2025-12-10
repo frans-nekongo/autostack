@@ -182,7 +182,6 @@ class ProjectService(BaseService):
             # Delete from database
             await project.delete()
             
-            # Optionally delete files
             if delete_files and project_directory:
                 try:
                     import shutil

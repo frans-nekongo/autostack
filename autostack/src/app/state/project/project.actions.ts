@@ -35,6 +35,23 @@ export const ProjectActions = createActionGroup({
     // Set Project Details (legacy - for direct setting)
     'Set Project Details': props<{ project: ProjectResult }>(),
 
+    'Update Project': props<{
+      projectId: string;
+      updates: {
+        name?: string;
+        author?: string;
+        description?: string;
+        version?: string;
+        tags?: string[];
+      };
+    }>(),
+    'Update Project Success': props<{
+      projectId: string;
+      message: string;
+      updates: any; // The updates that were applied
+    }>(),
+    'Update Project Failure': props<{ error: string }>(),
+
     // Reset State
     'Reset Project State': emptyProps(),
   },

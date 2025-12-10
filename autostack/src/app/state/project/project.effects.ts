@@ -134,6 +134,47 @@ export class ProjectEffects {
     )
   );
 
+  updateProject$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.updateProject),
+      switchMap(({ projectId, updates }) =>
+        this.projectService.updateProject(projectId, updates).pipe(
+          map((result) => {
+            if (result.success && result.projectId) {
+              return ProjectActions.updateProjectSuccess({
+                projectId: result.projectId,
+                message: result.message || 'Project updated successfully',
+                updates,
+              });
+            } else {
+              return ProjectActions.updateProjectFailure({
+                error: result.error || 'Failed to update project',
+              });
+            }
+          }),
+          catchError((error) =>
+            of(
+              ProjectActions.updateProjectFailure({
+                error:
+                  error.message || 'An error occurred while updating project',
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+
+  navigateAfterUpdate$ = createEffect(
+    () => 
+      this.actions$.pipe(
+        ofType(ProjectActions.updateProjectSuccess),
+        tap(({ projectId }) => {
+          this.router.navigate(['/project', projectId])
+        })
+      )
+  )
+
   // Navigate to project page after successful creation
   navigateAfterCreate$ = createEffect(
     () =>

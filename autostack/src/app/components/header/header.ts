@@ -26,36 +26,41 @@ export class Header implements OnInit {
   pageTitle$!: Observable<string>;
 
   ngOnInit() {
-    this.pageTitle$ = this.router.events.pipe(
-      filter((event) => event instanceof NavigationEnd),
-      map(() => {
-        let route = this.route;
-        while (route.firstChild) {
-          route = route.firstChild;
-        }
-        return route;
-      }),
-      switchMap((route) => {
-        const staticTitle = route.snapshot.data['title'] || '';
-        const routePath = route.snapshot.routeConfig?.path || '';
-
-        // Check if we're on a chat detail page
-        if (routePath === ':chatid') {
-          return this.chatFacade.currentChat$.pipe(
-            map((chat) => chat?.chatTitle || 'Chat')
-          );
-        }
-
-        // Check if we're on a project page
-        if (route.parent?.snapshot.routeConfig?.path === 'project/:projectId') {
+  this.pageTitle$ = this.router.events.pipe(
+    filter((event) => event instanceof NavigationEnd),
+    map(() => {
+      let route = this.route;
+      while (route.firstChild) {
+        route = route.firstChild;
+      }
+      return route;
+    }),
+    switchMap((route) => {
+      const staticTitle = route.snapshot.data['title'] || '';
+      const routePath = route.snapshot.routeConfig?.path || '';
+      
+      // Check if we're on a chat detail page
+      if (routePath === ':chatid') {
+        return this.chatFacade.currentChat$.pipe(
+          map((chat) => chat?.chatTitle || 'Chat')
+        );
+      }
+      
+      // Check if we're on a project page or any of its descendants
+      // Traverse up the route tree to find the project route
+      let currentRoute = route;
+      while (currentRoute.parent) {
+        if (currentRoute.parent.snapshot.routeConfig?.path === 'project/:projectId') {
           return this.projectFacade.currentProject$.pipe(
             map((project) => project?.name || 'Project')
           );
         }
-
-        // Return static title for other routes
-        return of(staticTitle);
-      })
-    );
-  }
+        currentRoute = currentRoute.parent;
+      }
+      
+      // Return static title for other routes
+      return of(staticTitle);
+    })
+  );
+}
 }

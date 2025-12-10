@@ -110,6 +110,12 @@ enum ComponentTypeInput {
   EXTERNAL = 'EXTERNAL',
 }
 
+interface DeleteResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -240,7 +246,7 @@ export class ProjectService {
     chatId: string
   ): Observable<ProjectCreatedResponse> {
     const input = this.transformToFullProjectInput(schema, chatId);
-    console.log(input)
+    console.log(input);
     const CREATE_FULL_PROJECT_DETAILED = gql`
       mutation CreateFullProject($input: FullProjectInput!) {
         createFullProject(input: $input) {
@@ -258,6 +264,84 @@ export class ProjectService {
         variables: { input },
       })
       .pipe(map((result) => result.data!.createFullProject));
+  }
+
+  /**
+   * Delete a project
+   */
+  deleteProject(
+    projectId: string,
+    deleteFiles: boolean = true
+  ): Observable<DeleteResponse> {
+    const DELETE_PROJECT = gql`
+      mutation DeleteProject($projectId: String!, $deleteFiles: Boolean) {
+        deleteProject(projectId: $projectId, deleteFiles: $deleteFiles) {
+          success
+          message
+          error
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ deleteProject: DeleteResponse }>({
+        mutation: DELETE_PROJECT,
+        variables: {
+          projectId: projectId,
+          deleteFiles: deleteFiles,
+        },
+      })
+      .pipe(map((result) => result.data!.deleteProject));
+  }
+
+  updateProject(
+    projectId: string,
+    updates: {
+      name?: string;
+      author?: string;
+      description?: string;
+      version?: string;
+      tags?: string[];
+    }
+  ): Observable<ProjectCreatedResponse> {
+    const UPDATE_PROJECT = gql`
+      mutation UpdateProject(
+        $projectId: String!
+        $name: String
+        $author: String
+        $description: String
+        $version: String
+        $tags: [String!]
+      ) {
+        updateProject(
+          projectId: $projectId
+          name: $name
+          author: $author
+          description: $description
+          version: $version
+          tags: $tags
+        ) {
+          success
+          projectId
+          error
+          message
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ updateProject: ProjectCreatedResponse }>({
+        mutation: UPDATE_PROJECT,
+        variables: {
+          projectId,
+          name: updates.name,
+          author: updates.author,
+          description: updates.description,
+          version: updates.version,
+          tags: updates.tags,
+        },
+      })
+      .pipe(map((result) => result.data!.updateProject));
   }
 
   /**

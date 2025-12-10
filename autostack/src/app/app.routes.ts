@@ -10,6 +10,10 @@ import { ChatDetail } from './pages/chat/chat-detail/chat-detail';
 import { NewChat } from './pages/chat/new-chat/new-chat';
 import { LoadingChat } from './pages/chat/loading-chat/loading-chat';
 import { ProjectsPage } from './pages/project/projects-page/projects-page';
+import { ProjectSettings } from './pages/project/settings/settings';
+import { ComponentProjectSettings } from './pages/project/settings/component-project-settings/component-project-settings';
+import { GeneralProjectSettings } from './pages/project/settings/general-project-settings/general-project-settings';
+import { VersionControlProjectSettings } from './pages/project/settings/version-control-project-settings/version-control-project-settings';
 
 export const routes: Routes = [
     {path: '', redirectTo: '/home', pathMatch: 'full'},
@@ -25,6 +29,12 @@ export const routes: Routes = [
         {path: 'overview', component: Overview},
         {path: 'production', component: Production},
         {path: 'development', component: Development},
+        {path: 'settings', component: ProjectSettings, children: [
+            {path: '', redirectTo: 'general', pathMatch: 'full'},
+            {path: 'general', component: GeneralProjectSettings},
+            {path: 'components', component: ComponentProjectSettings},
+            {path: 'version-control', component: VersionControlProjectSettings},
+        ]},
     ]},
     {path: 'create-project', component: CreateProject},
     {path: 'project', redirectTo: '/projects', pathMatch: 'full'},

@@ -16,6 +16,7 @@ export class ProjectFacade {
     ProjectSelectors.selectCurrentProjectId
   );
   currentProject$ = this.store.select(ProjectSelectors.selectCurrentProject);
+  updating$ = this.store.select(ProjectSelectors.selectUpdating);
   currentArchitecture$ = this.store.select(
     ProjectSelectors.selectCurrentArchitecture
   );
@@ -129,5 +130,18 @@ export class ProjectFacade {
    */
   getProjectById(projectId: string) {
     return this.store.select(ProjectSelectors.selectProjectById(projectId));
+  }
+
+  updateProject(
+    projectId: string,
+    updates: {
+      name?: string;
+      author?: string;
+      description?: string;
+      version?: string;
+      tags?: string[];
+    }
+  ): void {
+    this.store.dispatch(ProjectActions.updateProject({ projectId, updates }));
   }
 }

@@ -1,0 +1,109 @@
+<div class="flex flex-col">
+    <div class="flex justify-between">
+        <h2>General</h2>
+        <div class="flex gap-3">
+            @if (!canEdit) {
+            <button class="border border-ocean-500 rounded min-w-20" (click)="onCanEditSelect(true)">
+                <p class="text-sm font-bold text-ocean-500">Edit</p>
+            </button>
+            }
+            @if (canEdit) {
+            <button class="border border-firebrick-500 rounded min-w-20" (click)="onCanEditSelect(false)">
+                <p class="text-sm text-firebrick-500 font-bold">Cancel</p>
+            </button>
+            <button class="border bg-ocean-500 rounded min-w-20" (click)="onSubmit()" [disabled]="!hasFormChanges()">
+                <p class="text-sm text-white-900 font-bold">Save</p>
+            </button>
+            }
+        </div>
+    </div>
+    <hr class="mb-6 mt-3" />
+    <form class="flex flex-col gap-6" (ngSubmit)="onSubmit()">
+        <div class="flex flex-col gap-1">
+            <label class="text-slate-700">Name</label>
+            <input 
+                [ngModel]="formData.name" 
+                (ngModelChange)="onFormInputChange('name', $event)"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="!canEdit"
+                class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10 disabled:cursor-not-allowed" />
+        </div>
+        <div class="flex flex-col gap-1">
+            <label>Version</label>
+            <input 
+                [ngModel]="formData.version" 
+                (ngModelChange)="onFormInputChange('version', $event)"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="!canEdit"
+                class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10 disabled:cursor-not-allowed" />
+        </div>
+        <div class="flex flex-col gap-1">
+            <label>Description</label>
+            <textarea rows="4" 
+                [ngModel]="formData.description" 
+                (ngModelChange)="onFormInputChange('description', $event)"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="!canEdit"
+                class="text-slate-500 focus:text-slate-700 min-h-[50px] max-h-[120px] border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10 resize-none disabled:cursor-not-allowed">
+      </textarea>
+        </div>
+    </form>
+    <div class="flex flex-col border border-firebrick-400 rounded mt-6">
+        <div class="p-4">
+            <p class="font-bold text-firebrick-500 text-lg">Delete Project</p>
+            <p class="text-firebrick-500">Permanently delete this project, all components and infrastructure. Once you
+                delete the project, there is no going back</p>
+            <div class="flex gap-3">
+                <div class="diagram w-24 h-20 border border-gray-300 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                    #mermaidDiagram></div>
+                <p>{{(currentProject$ | async)?.name}}</p>
+            </div>
+        </div>
+        <div class="flex justify-end bg-firebrick-300 p-4 shadow-inner border-t border-t-firebrick-400">
+            <button class="bg-firebrick-500 py-1 px-4 rounded" (click)="openDeleteModal()">
+                <p class="font-bold text-white-50 text-sm">Delete Project</p>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal) {
+<div class="delete-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+    <div class=" delete-content bg-white rounded-lg shadow-xl max-w-md w-full mx-4 z-50">
+        <div class="p-6">
+            <h3 class="text-xl font-bold text-firebrick-500 mb-4">Delete Project</h3>
+            <p class="text-slate-700 mb-4">
+                This action cannot be undone. This will permanently delete the
+                <span class="font-bold">{{(currentProject$ | async)?.name}}</span> project and all of its data.
+            </p>
+            <p class="text-slate-700 mb-4">
+                Please type <span class="font-bold">{{(currentProject$ | async)?.name}}</span> to confirm.
+            </p>
+            <input type="text" [(ngModel)]="deleteConfirmationText" placeholder="Enter project name"
+                class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-firebrick-500 mb-2"
+                [disabled]="isDeleting" />
+            @if (deleteError) {
+            <p class="text-firebrick-500 text-sm mb-4">{{deleteError}}</p>
+            }
+        </div>
+        <div class="flex justify-end gap-3 p-4 rounded-b-lg">
+            <button (click)="closeDeleteModal()"
+                class="px-4 py-2 border border-slate-300 rounded text-slate-700 hover:bg-slate-50"
+                [disabled]="isDeleting">
+                Cancel
+            </button>
+            <button (click)="deleteProject()" [disabled]="!(isDeleteEnabled | async) || isDeleting"
+                class="px-4 py-2 rounded text-white font-bold disabled:bg-firebrick-400 disabled:cursor-not-allowed"
+                [ngClass]="{
+          'bg-firebrick-500 hover:bg-firebrick-600': (isDeleteEnabled | async) && !isDeleting,
+          'bg-slate-300 cursor-not-allowed': !(isDeleteEnabled | async) || isDeleting
+        }">
+                <p class="text-white-900">
+                    {{isDeleting ? 'Deleting...' : 'Delete Project'}}
+                </p>
+            </button>
+        </div>
+    </div>
+</div>
+}

@@ -25,7 +25,7 @@ module.exports = {
         },
 
         white: {
-          50: "#fefefe",
+          50: "#ffffff",
           100: "#fefefe",
           200: "#fdfdfd",
           300: "#fcfcfc",
@@ -49,15 +49,33 @@ module.exports = {
           800: "#151515",
           900: "#0a0a0a",
         },
+
+        firebrick: {
+          50: "#fef2f2",
+          100: "#fee2e2",
+          200: "#fecaca",
+          300: "#fca5a5",
+          400: "#f87171",
+          500: "#b22222",
+          600: "#991b1b",
+          700: "#7f1d1d",
+          800: "#63171b",
+          900: "#451a15",
+          950: "#2c0a0e",
+        },
       },
     },
   },
   plugins: [
     plugin(function ({ addBase, theme }) {
       addBase({
+        body: {
+          color: theme("colors.slate.700"),
+        },
         h1: {
           fontSize: theme("fontSize.2xl"),
           fontFamily: theme("fontFamily.spaceMono"),
+          color: theme("colors.slate.700"),
         },
         h2: {
           fontSize: theme("fontSize.2xl"),

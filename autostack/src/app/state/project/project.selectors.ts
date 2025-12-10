@@ -113,7 +113,12 @@ export const selectHasCurrentArchitecture = createSelector(
   (architecture) => !!architecture
 );
 
-// Combined loading state
+export const selectUpdating = createSelector(
+  selectProjectStore,
+  (state: IProjectState) => state.loading // Reusing loading state for updates
+);
+
+// Update the combined loading state to include updating:
 export const selectIsLoading = createSelector(
   selectLoading,
   selectLoadingArchitecture,

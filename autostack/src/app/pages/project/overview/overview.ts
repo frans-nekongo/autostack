@@ -32,8 +32,7 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
   private projectFacade = inject(ProjectFacade);
   private projectService = inject(ProjectService);
   private router = inject(Router);
-    private route = inject(ActivatedRoute);
-  private apollo = inject(Apollo);
+  private route = inject(ActivatedRoute);
 
   currentProject$ = this.projectFacade.currentProject$;
   currentArchitecture$ = this.projectFacade.currentArchitecture$;
@@ -59,14 +58,13 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
       securityLevel: 'loose',
     });
 
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe((params) => {
       const projectId = params['projectId'];
       if (projectId) {
-        this.projectFacade.loadProject(projectId)
-        this.projectFacade.loadProjectArchitecture(projectId)
+        this.projectFacade.loadProject(projectId);
+        this.projectFacade.loadProjectArchitecture(projectId);
       }
-    })
-    
+    });
   }
 
   ngAfterViewInit(): void {
@@ -102,11 +100,9 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
             this.isLoading = false;
 
             if (architectureResult) {
-
               // Generate the C4 diagram
-              this.diagramCode = this.projectService.generateC4Diagram(
-                architectureResult
-              );
+              this.diagramCode =
+                this.projectService.generateC4Diagram(architectureResult);
 
               // Render the diagram
               const element = this.mermaidDiagram.nativeElement;

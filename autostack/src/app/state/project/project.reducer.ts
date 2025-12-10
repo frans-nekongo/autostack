@@ -109,6 +109,52 @@ const reducer = createReducer(
     error: null,
   })),
 
+  on(ProjectActions.updateProject, (state) => ({
+    ...state,
+    loading: true,
+    error: null,
+  })),
+  on(ProjectActions.updateProjectSuccess, (state, { projectId, updates }) => {
+    // Update the current project if it matches the updated project
+    const updatedCurrentProject =
+      state.currentProjectId === projectId
+        ? {
+            ...state.currentProject!,
+            ...updates,
+            // Handle metadata updates for tags
+            metadata: updates.tags
+              ? { ...state.currentProject?.metadata, tags: updates.tags }
+              : state.currentProject?.metadata,
+          }
+        : state.currentProject;
+
+    // Update the project in the projects array
+    const updatedProjects = state.projects.map((project) =>
+      project.id === projectId
+        ? {
+            ...project,
+            ...updates,
+            metadata: updates.tags
+              ? { ...project.metadata, tags: updates.tags }
+              : project.metadata,
+          }
+        : project
+    );
+
+    return {
+      ...state,
+      currentProject: updatedCurrentProject,
+      projects: updatedProjects,
+      loading: false,
+      error: null,
+    };
+  }),
+  on(ProjectActions.updateProjectFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error,
+  })),
+
   // Reset State
   on(ProjectActions.resetProjectState, () => initialProjectState)
 );
