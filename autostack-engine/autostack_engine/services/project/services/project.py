@@ -45,7 +45,7 @@ class ProjectService(BaseService):
             self.log_error(f"Error creating directory for project '{project_name}': {e}")
             return None
     
-    async def create_project(self, project_data: Dict[str, Any], chat_id: Optional[str] = None ) -> tuple[bool, Optional[str], Optional[str]]:
+    async def create_project(self, project_data: Dict[str, Any]) -> tuple[bool, Optional[str], Optional[str]]:
         """
         Create a new project.
         
@@ -92,13 +92,13 @@ class ProjectService(BaseService):
                 description=project_data.get("description", ""),
                 version=project_data.get("version", "1.0.0"),
                 metadata=metadata,
-                chat_id=UUID(chat_id) if chat_id else None
+                chat_id=project_data.get('chat_id', '')
             )
             
             
             await project.insert()
-            if chat_id:
-                project_chat = await ProjectChat.find_one(ProjectChat.id == chat_id)
+            if project_data.get('chat_id', ''):
+                project_chat = await ProjectChat.get(project_data.get('chat_id', ''))
                 project_chat.chat_title = f'{project_name} schema generation'
                 await project_chat.save()
             

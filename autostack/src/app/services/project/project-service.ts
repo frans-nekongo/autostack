@@ -1,16 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { map, Observable } from 'rxjs';
-import {
-  COMPONENT_TYPE,
-  GeneratedComponent,
-  GeneratedSchema,
-  TECHNOLOGY_CATEGORY,
-} from './util';
 
 export interface ProjectMetadata {
   created_date?: string | null;
-  last_modified?: string | null;
+  lastModified?: string | null;
   tags?: string[] | null;
   environment?: string | null;
   directory?: string | null;
@@ -72,7 +66,7 @@ interface Connection {
   port?: number;
 }
 
-interface ProjectArchitecture {
+export interface ProjectArchitecture {
   project_id: string;
   project_name: string;
   technologies: Technology[];
@@ -122,7 +116,10 @@ enum ComponentTypeInput {
 export class ProjectService {
   private apollo = inject(Apollo);
 
-  fetchAllProjects(): Observable<ProjectResult | null | undefined> {
+  /**
+   * Fetch all projects (basic info)
+   */
+  fetchAllProjects(): Observable<ProjectResult[]> {
     const FETCH_ALL_PROJECTS = gql`
       query FetchAllProjects {
         fetchAllProjects {
@@ -150,18 +147,65 @@ export class ProjectService {
     `;
 
     return this.apollo
-      .query<{ fetchAllProjects: ProjectResult | null | undefined }>({
+      .query<{ fetchAllProjects: ProjectResult[] }>({
         query: FETCH_ALL_PROJECTS,
         fetchPolicy: 'network-only',
       })
-      .pipe(map((result) => result.data?.fetchAllProjects));
+      .pipe(
+        map((result) => {
+          const data = result.data?.fetchAllProjects;
+          // Ensure we always return an array
+          if (!data) return [];
+          return Array.isArray(data) ? data : [data];
+        })
+      );
   }
 
-  fetchProjectArchitecture(
-    projectId: string
-  ): Observable<ProjectArchitecture | null | undefined> {
+  /**
+   * Fetch single project by ID (basic info)
+   */
+  fetchProjectById(projectId: string): Observable<ProjectResult> {
+    const FETCH_PROJECT_ID = gql`
+      query FetchProject($projectId: String!) {
+        fetchProject(projectId: $projectId) {
+          id
+          name
+          author
+          description
+          version
+          status
+          metadata {
+            createdDate
+            lastModified
+            tags
+            environment
+            directory
+          }
+          gitInfo {
+            latestCommit
+            branch
+            isDirty
+            commits
+          }
+        }
+      }
+    `;
+
+    return this.apollo
+      .query<{ fetchProject: ProjectResult }>({
+        query: FETCH_PROJECT_ID,
+        variables: { projectId },
+        fetchPolicy: 'network-only',
+      })
+      .pipe(map((result) => result.data?.fetchProject!));
+  }
+
+  /**
+   * Fetch full project architecture (components, connections, technologies)
+   */
+  fetchProjectArchitecture(projectId: string): Observable<ProjectArchitecture> {
     const FETCH_PROJECT_ARCHITECTURE = gql`
-      query fetchProjectArchitecture($projectId: String!) {
+      query FetchProjectArchitecture($projectId: String!) {
         fetchProjectArchitecture(projectId: $projectId) {
           success
           data
@@ -172,29 +216,34 @@ export class ProjectService {
     `;
 
     return this.apollo
-      .query<{
-        fetchProjectArchitecture: ProjectArchitecture | null | undefined;
-      }>({
+      .query<{ fetchProjectArchitecture: ArchitectureResponse }>({
         query: FETCH_PROJECT_ARCHITECTURE,
         variables: { projectId },
         fetchPolicy: 'network-only',
       })
-      .pipe(map((result) => result.data?.fetchProjectArchitecture));
+      .pipe(
+        map((result) => {
+          const response = result.data?.fetchProjectArchitecture;
+          if (response?.success && response.data) {
+            return response.data;
+          }
+          throw new Error(response?.error || 'Failed to fetch architecture');
+        })
+      );
   }
 
+  /**
+   * Create a full project from schema
+   */
   createFullProject(
-    schema: GeneratedSchema,
+    schema: any,
     chatId: string
   ): Observable<ProjectCreatedResponse> {
     const input = this.transformToFullProjectInput(schema, chatId);
-
+    console.log(input)
     const CREATE_FULL_PROJECT_DETAILED = gql`
-      mutation CreateFullProject(
-        $input: FullProjectInput!
-      ) {
-        createFullProject(
-          input: $input
-        ) {
+      mutation CreateFullProject($input: FullProjectInput!) {
+        createFullProject(input: $input) {
           success
           projectId
           error
@@ -211,24 +260,24 @@ export class ProjectService {
       .pipe(map((result) => result.data!.createFullProject));
   }
 
+  /**
+   * Generate C4 Context Diagram
+   */
   generateC4Diagram(architecture: ProjectArchitecture): string {
     const lines: string[] = [];
 
-    // C4 Context diagram header
     lines.push('C4Context');
     lines.push(
       `  title Architectural Diagram for ${architecture.project_name}`
     );
     lines.push('');
 
-    // Add system boundary
     lines.push(`  System_Boundary(system, "${architecture.project_name}") {`);
 
     const componentsByType = this.groupComponentsByType(
       architecture.components
     );
 
-    // Add containers (components) inside the system boundary
     for (const [type, components] of Object.entries(componentsByType)) {
       for (const comp of components) {
         const techInfo = this.getTechnologyInfo(
@@ -236,8 +285,6 @@ export class ProjectService {
           architecture.technologies
         );
         const description = techInfo ? `${comp.type} (${techInfo})` : comp.type;
-
-        // Use different C4 element types based on component type
         const c4Type = this.getC4ElementType(comp.type);
         lines.push(
           `    ${c4Type}(${comp.component_id}, "${comp.name}", "${description}")`
@@ -260,7 +307,6 @@ export class ProjectService {
       lines.push('');
     }
 
-    // Add relationships (connections)
     if (architecture.connections.length > 0) {
       for (const conn of architecture.connections) {
         const label = this.getConnectionLabel(conn);
@@ -274,6 +320,9 @@ export class ProjectService {
     return lines.join('\n');
   }
 
+  /**
+   * Generate C4 Container Diagram
+   */
   generateC4ContainerDiagram(architecture: ProjectArchitecture): string {
     const lines: string[] = [];
 
@@ -285,7 +334,6 @@ export class ProjectService {
       `  Container_Boundary(system, "${architecture.project_name}") {`
     );
 
-    // Add all components as containers
     for (const comp of architecture.components) {
       if (comp.type === 'external') continue;
 
@@ -302,7 +350,6 @@ export class ProjectService {
     lines.push('  }');
     lines.push('');
 
-    // External systems
     const externalComponents = architecture.components.filter(
       (c) => c.type === 'external'
     );
@@ -314,7 +361,6 @@ export class ProjectService {
       lines.push('');
     }
 
-    // Relationships
     for (const conn of architecture.connections) {
       const label = this.getConnectionLabel(conn);
       lines.push(`  Rel(${conn.source}, ${conn.target}, "${label}")`);
@@ -323,6 +369,7 @@ export class ProjectService {
     return lines.join('\n');
   }
 
+  // Private helper methods
   private groupComponentsByType(
     components: Component[]
   ): Record<string, Component[]> {
@@ -390,7 +437,7 @@ export class ProjectService {
       .filter((item) => item.includes('='))
       .map((item) => {
         const [name, ...valueParts] = item.split('=');
-        const value = valueParts.join('='); // Handle values containing '='
+        const value = valueParts.join('=');
         return { name: name.trim(), value: value.trim() };
       });
   }
@@ -438,7 +485,6 @@ export class ProjectService {
       case 'EXTERNAL':
         return ComponentTypeInput.EXTERNAL;
       default:
-        // Try to infer from the string
         const typeLower = type.toLowerCase();
         if (typeLower.includes('api')) return ComponentTypeInput.API;
         if (typeLower.includes('web')) return ComponentTypeInput.WEB;
@@ -450,7 +496,7 @@ export class ProjectService {
     }
   }
 
-  private transformToFullProjectInput(data: GeneratedSchema, chatId: string) {
+  private transformToFullProjectInput(data: any, chatId: string) {
     return {
       project: {
         name: data.project.name,
@@ -458,11 +504,11 @@ export class ProjectService {
         description: data.project.description,
         version: data.project.version || '1.0.0',
         status: 'created',
-        metadata: null,
         chatId: chatId,
+        metadata: null,
       },
       technologies:
-        data.technologies?.map((tech) => ({
+        data.technologies?.map((tech: any) => ({
           name: tech.name,
           version: tech.version || 'latest',
           category: this.mapTechnologyTypeToCategory(tech.type),
@@ -474,7 +520,7 @@ export class ProjectService {
           enabled: true,
         })) || [],
       components:
-        data.components?.map((component) => ({
+        data.components?.map((component: any) => ({
           componentId: component.component_id,
           name: component.name,
           type: this.mapComponentToType(component.type),
@@ -485,7 +531,7 @@ export class ProjectService {
           dependencies: component.dependencies || [],
         })) || [],
       connections:
-        data.connections?.map((connection) => ({
+        data.connections?.map((connection: any) => ({
           source: connection.source,
           target: connection.target,
           type: connection.type || 'api',

@@ -1,42 +1,45 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
-import { NgIcon, provideIcons } from "@ng-icons/core";
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import { heroArrowLeft } from '@ng-icons/heroicons/outline';
 import { ProjectFacade } from '../../state/project/project.facade';
 import { Subject, takeUntil } from 'rxjs';
-import { RouterModule } from "@angular/router";
-import { ProjectResult, ProjectService } from '../../services/project/project-service';
+import { RouterModule } from '@angular/router';
+import {
+  ProjectResult,
+  ProjectService,
+} from '../../services/project/project-service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-project',
-  imports: [RouterOutlet, NgIcon, RouterModule],
+  imports: [RouterOutlet, NgIcon, RouterModule, CommonModule],
   templateUrl: './project.html',
   styleUrl: './project.scss',
-  providers: [provideIcons({heroArrowLeft})]
+  providers: [provideIcons({ heroArrowLeft })],
 })
-export class Project implements OnInit, OnDestroy{
-  private destory$ = new Subject<void>()
+export class Project implements OnInit, OnDestroy {
   private projectFacade = inject(ProjectFacade);
-  private projectService = inject(ProjectService);
-  private router = inject(Router)
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
-  project$ = this.projectFacade.project$;
-  project!: ProjectResult;
-
+  currentProject$ = this.projectFacade.currentProject$;
+  currentArchitecture$ = this.projectFacade.currentArchitecture$;
+  isLoading$ = this.projectFacade.loading$;
+  loadingArchitecture$ = this.projectFacade.loadingArchitecture$;
 
   ngOnInit(): void {
-    this.projectFacade.project$.pipe(takeUntil(this.destory$)).subscribe((selectedProject) => {
-      if (selectedProject) {
-        this.project = selectedProject;
+    this.route.params.subscribe((params) => {
+      const projectId = params['projectId'];
+      if (projectId) {
+        this.projectFacade.loadProject(projectId);
       }
-    })
+    });
   }
 
-  ngOnDestroy(): void {
-    
-  }
+  ngOnDestroy(): void {}
 
   onBack(): void {
-    this.router.navigate(['/'])
+    this.router.navigate(['/']);
   }
 }

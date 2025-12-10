@@ -20,12 +20,13 @@ export const routes: Routes = [
         {path: 'loading', component: LoadingChat},
         {path: ':chatid', component: ChatDetail},
     ]},
-    {path: 'project', component: Project, children: [
+    {path: 'project/:projectId', component: Project, children: [
         {path: '', 'redirectTo': 'overview', pathMatch: 'full'},
         {path: 'overview', component: Overview},
         {path: 'production', component: Production},
         {path: 'development', component: Development},
     ]},
     {path: 'create-project', component: CreateProject},
+    {path: 'project', redirectTo: '/projects', pathMatch: 'full'},
     {path: 'projects', component: ProjectsPage}
 ];

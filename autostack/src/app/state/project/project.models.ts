@@ -1,17 +1,33 @@
-import { ProjectResult } from "../../services/project/project-service";
+import {
+  ProjectResult,
+  ProjectArchitecture,
+} from '../../services/project/project-service';
 
 export interface IProjectState {
-  project: ProjectResult;
+  // Current selected project
+  currentProjectId: string | null;
+  currentProject: ProjectResult | null;
+  currentArchitecture: ProjectArchitecture | null;
+
+  // All projects list
+  projects: ProjectResult[];
+
+  // Loading states
   loading: boolean;
+  loadingArchitecture: boolean;
+  creating: boolean;
+
+  // Error state
   error: string | null;
 }
 
 export const initialProjectState: IProjectState = {
-  project: {
-    name: '',
-    id: "",
-    version: ""
-  },
+  currentProjectId: null,
+  currentProject: null,
+  currentArchitecture: null,
+  projects: [],
   loading: false,
+  loadingArchitecture: false,
+  creating: false,
   error: null,
 };

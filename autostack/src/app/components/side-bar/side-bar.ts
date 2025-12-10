@@ -17,10 +17,11 @@ import { Router } from '@angular/router';
 import { Apollo } from 'apollo-angular';
 import { FormGroup } from '@angular/forms';
 import { catchError, of, Subject } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-side-bar',
-  imports: [NgIcon],
+  imports: [NgIcon, CommonModule, ],
   templateUrl: './side-bar.html',
   styleUrl: './side-bar.scss',
   providers: [
@@ -35,92 +36,23 @@ import { catchError, of, Subject } from 'rxjs';
 })
 export class SideBar implements OnInit {
   private projectFacade = inject(ProjectFacade);
-  private projectService = inject(ProjectService);
-  private userService = inject(UserService);
   private router = inject(Router);
-  prompt: string = '';
-  private apollo = inject(Apollo);
-  private destroy$ = new Subject<void>();
 
   projects: ProjectResult[] = [];
   isLoading = false;
   error: string | null = null;
 
+  projects$ = this.projectFacade.projects$;
+  isLoading$ = this.projectFacade.loading$;
+  error$ = this.projectFacade.error$;
+  projectsCount$ = this.projectFacade.projectsCount$;
+
   ngOnInit(): void {
-    this.loadProjects();
+    this.projectFacade.loadProjects();
   }
 
-  loadProjects(): void {
-    this.isLoading = true;
-    this.error = null;
-
-    this.projectService
-      .fetchAllProjects()
-      .pipe(
-        catchError((error) => {
-          console.error('Error fetching projects:', error);
-          this.error = 'Failed to load projects. Please try again later.';
-          this.isLoading = false;
-          return of(null);
-        })
-      )
-      .subscribe({
-        next: (projectResult: any) => {
-          this.isLoading = false;
-          console.log(projectResult);
-
-          if (projectResult) {
-            this.projects = projectResult.map((project: any) =>
-              this.transformProjectResult(project)
-            );
-          } else {
-            this.error = 'No projects found.';
-          }
-        },
-        error: (error) => {
-          console.error('Error in subscription:', error);
-          this.isLoading = false;
-          this.error = 'An unexpected error occurred.';
-        },
-      });
-  }
-
-  private transformProjectResult(projectResult: ProjectResult): ProjectResult {
-    return {
-      id: projectResult.id,
-      name: projectResult.name,
-      author: projectResult.author,
-      description: projectResult.description || 'No description available',
-      version: projectResult.version,
-      status: projectResult.status,
-      metadata: projectResult.metadata,
-      gitInfo: {
-        ...projectResult.gitInfo,
-      },
-    };
-  }
-
-  onSelect(project: ProjectResult) {
-    const {
-      id,
-      name,
-      author,
-      description,
-      version,
-      status,
-      metadata,
-      gitInfo,
-    } = project;
-    this.projectFacade.setProject(
-      id as string,
-      name,
-      author,
-      description,
-      version,
-      status,
-      metadata,
-      gitInfo
-    );
-    this.router.navigate(['/project']);
+  onSelectProject(project: ProjectResult):void {
+    this.projectFacade.setCurrentProject(project.id);
+    this.router.navigate(['/project', project.id]);
   }
 }

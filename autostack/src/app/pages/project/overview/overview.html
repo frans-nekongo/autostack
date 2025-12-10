@@ -31,7 +31,7 @@
               stroke-linecap="round" stroke-linejoin="round" />
           </svg>
 
-          <p class="font-spaceMono">{{project.git_info?.branch}}</p>
+          <p class="font-spaceMono">{{ (currentProject$ | async)?.gitInfo?.branch }}</p>
         </div>
         <div class="flex items-center gap-1">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -40,7 +40,7 @@
               fill="black" />
           </svg>
 
-          <p class="font-spaceMono">{{project.git_info?.latestCommit}}</p>
+          <p class="font-spaceMono">{{ (currentProject$ | async)?.gitInfo?.latestCommit}}</p>
         </div>
       </div>
       <button (click)="openInVSCode()" class="font-spaceMono flex items-center bg-ocean-500 py-1 px-2 rounded gap-2">
@@ -51,6 +51,6 @@
   </div>
   <div class="py-5">
     <h2>Description</h2>
-    <p>{{project.description}}</p>
+    <p>{{ (currentProject$ | async)?.description }}</p>
   </div>
 </div>

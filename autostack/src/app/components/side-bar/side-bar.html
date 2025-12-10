@@ -1,11 +1,10 @@
-<nav
-    class="flex flex-col h-screen p-4 border-r border-r-slate-500 border-opacity-15 justify-between items-center">
+<nav class="flex flex-col h-screen p-4 border-r border-r-slate-500 border-opacity-15 justify-between items-center">
 
     <div>
-        
+
         <div class="flex items-center gap-10 mb-6">
-            <p>Projects</p>
-            <a class="flex items-center bg-ocean-500 py-1 px-2 rounded" href="/create-project">
+            <p class="font-bold">Projects</p>
+            <a class="flex items-center bg-ocean-500 py-1 px-2 rounded gap-2" href="/create-project">
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clip-path="url(#clip0_55_314)">
                         <path fill-rule="evenodd" clip-rule="evenodd"
@@ -25,21 +24,17 @@
         </div>
 
         <div class="flex flex-col gap-3">
-            @if (isLoading) {
+            @if (isLoading$ | async) {
             <p>Loading...</p>
-            } @else if (error) {
-            <p>{{error}}</p>
+            } @else if (error$ | async) {
+            <p>{{error$ | async}}</p>
             } @else {
-            @for (item of projects; track $index) {
-            <div class="flex items-center gap-1 cursor-pointer" (click)="onSelect(item)">
+            @for (project of projects$ | async; track $index) {
+            <div class="flex items-center gap-1 cursor-pointer" (click)="onSelectProject(project)">
                 <ng-icon name="saxDirectNormalBulk" class="text-ocean-500" size="20"></ng-icon>
-                <p class="text-sm  text-slate-700">{{item.name}}</p>
+                <p class="text-sm  text-slate-700">{{project.name}}</p>
             </div>
             }}
         </div>
-
-        
     </div>
-
-    
 </nav>

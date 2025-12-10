@@ -4,7 +4,7 @@
             <ng-icon name="heroArrowLeft"></ng-icon>
             <p>Back to projects</p>
         </div>
-        <h1>{{project.name}}</h1>
+        <h1>{{(currentProject$ | async)?.name}}</h1>
     </div>
     <div class="flex mb-[-2px] gap-5 border-b">
         <div class="flex mb-[-1px] gap-5 px-5">

@@ -1,18 +1,41 @@
-import { props, createActionGroup, emptyProps } from "@ngrx/store";
-import { GitInfo, ProjectMetadata } from "../../services/project/project-service";
+import { props, createActionGroup, emptyProps } from '@ngrx/store';
+import {
+  ProjectResult,
+  ProjectArchitecture,
+} from '../../services/project/project-service';
 
 export const ProjectActions = createActionGroup({
-    source: 'Project',
-    events: {
-        'Set Project': props<{
-            id: string;
-            name: string;
-            author?: string | null;
-            description?: string | null;
-            version: string;
-            status?: string | null;
-            metadata?: ProjectMetadata | null;
-            git_info?: GitInfo | null;
-        }>(),
-    }
-})
+  source: 'Project',
+  events: {
+    // Load All Projects
+    'Load Projects': emptyProps(),
+    'Load Projects Success': props<{ projects: ProjectResult[] }>(),
+    'Load Projects Failure': props<{ error: string }>(),
+
+    // Load Single Project
+    'Load Project': props<{ projectId: string }>(),
+    'Load Project Success': props<{ project: ProjectResult }>(),
+    'Load Project Failure': props<{ error: string }>(),
+
+    // Load Project Architecture (full details with components, connections, technologies)
+    'Load Project Architecture': props<{ projectId: string }>(),
+    'Load Project Architecture Success': props<{
+      architecture: ProjectArchitecture;
+    }>(),
+    'Load Project Architecture Failure': props<{ error: string }>(),
+
+    // Create Project from Schema
+    'Create Project': props<{ schema: any; chatId: string }>(),
+    'Create Project Success': props<{ projectId: string; message: string }>(),
+    'Create Project Failure': props<{ error: string }>(),
+
+    // Set Current Project (for navigation/selection)
+    'Set Current Project': props<{ projectId: string }>(),
+
+    // Set Project Details (legacy - for direct setting)
+    'Set Project Details': props<{ project: ProjectResult }>(),
+
+    // Reset State
+    'Reset Project State': emptyProps(),
+  },
+});

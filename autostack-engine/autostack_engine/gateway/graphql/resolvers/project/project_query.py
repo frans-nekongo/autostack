@@ -90,38 +90,36 @@ class ProjectQuery:
         project_id: str,
     ) -> Optional[ProjectInfo]:
         """Fetch a project by the project ID"""
-        db = DatabaseManager()
-        await db.connect([Project,])
+        service = ProjectService()
+        result = await service.get_project(project_id=project_id)
         
-        existing_project = await Project.get(project_id)
-        if not existing_project:
+        if not result:
             logger.error(f"[GRAPHQL] Project with ID '{project_id}' does not exist.")
             return None
         
-        # Convert the Project document to ProjectInfo output type
         metadata = None
         project_directory = None
         
-        if existing_project.metadata:
+        if result.metadata:
             metadata = ProjectMetadata(
-                created_date=existing_project.metadata.created_date,
-                last_modified=existing_project.metadata.last_modified,
-                tags=existing_project.metadata.tags,
-                environment=existing_project.metadata.environment,
-                directory=existing_project.metadata.directory
+                created_date=result.metadata.created_date,
+                last_modified=result.metadata.last_modified,
+                tags=result.metadata.tags,
+                environment=result.metadata.environment,
+                directory=result.metadata.directory
             )
-            project_directory = existing_project.metadata.directory
+            project_directory = result.metadata.directory
         
         # Get git info safely
         git_info = get_git_info(project_directory)
         
         return ProjectInfo(
-            id=existing_project.id,
-            name=existing_project.name,
-            author=existing_project.author,
-            description=existing_project.description,
-            version=existing_project.version,
-            status=existing_project.status.value if hasattr(existing_project.status, 'value') else existing_project.status,
+            id=result.id,
+            name=result.name,
+            author=result.author,
+            description=result.description,
+            version=result.version,
+            status=result.status.value if hasattr(result.status, 'value') else result.status,
             metadata=metadata,
             git_info=git_info
         )

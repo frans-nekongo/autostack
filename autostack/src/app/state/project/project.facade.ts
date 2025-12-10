@@ -1,44 +1,133 @@
-import { Injectable, inject } from "@angular/core";
-import { Store } from "@ngrx/store";
-import { Observable, map } from "rxjs";
+import { Injectable, inject } from '@angular/core';
+import { Store } from '@ngrx/store';
 
-import { ProjectActions } from "./project.actions";
+import { ProjectActions } from './project.actions';
 import * as ProjectSelectors from './project.selectors';
-import { GitInfo, ProjectMetadata } from "../../services/project/project-service";
+import { ProjectResult } from '../../services/project/project-service';
 
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProjectFacade {
-    private readonly store = inject(Store);
+  private readonly store = inject(Store);
 
-    project$ = this.store.select(ProjectSelectors.selectProject);
-    loading$ = this.store.select(ProjectSelectors.selectProjectLoading);
-    error$ = this.store.select(ProjectSelectors.selectProjectError);
+  // Selectors - Current Project
+  currentProjectId$ = this.store.select(
+    ProjectSelectors.selectCurrentProjectId
+  );
+  currentProject$ = this.store.select(ProjectSelectors.selectCurrentProject);
+  currentArchitecture$ = this.store.select(
+    ProjectSelectors.selectCurrentArchitecture
+  );
 
-    hasError$ = this.error$.pipe(
-        map(error => !!error)
-    );
+  // Selectors - Current Project Details
+  currentProjectName$ = this.store.select(
+    ProjectSelectors.selectCurrentProjectName
+  );
+  currentProjectDescription$ = this.store.select(
+    ProjectSelectors.selectCurrentProjectDescription
+  );
+  currentProjectMetadata$ = this.store.select(
+    ProjectSelectors.selectCurrentProjectMetadata
+  );
+  currentProjectGitInfo$ = this.store.select(
+    ProjectSelectors.selectCurrentProjectGitInfo
+  );
 
-    setProject(
-        id: string,
-        name: string,
-        author: string | null = null,
-        description: string | null = null,
-        version: string,
-        status: string | null = null,
-        metadata: ProjectMetadata | null = null,
-        git_info: GitInfo | null = null
-    ): void {
-        this.store.dispatch(ProjectActions.setProject({
-            id,
-            name,
-            author,
-            description,
-            version,
-            status,
-            metadata,
-            git_info
-        }))
-    }
+  // Selectors - Architecture Details
+  architectureComponents$ = this.store.select(
+    ProjectSelectors.selectArchitectureComponents
+  );
+  architectureTechnologies$ = this.store.select(
+    ProjectSelectors.selectArchitectureTechnologies
+  );
+  architectureConnections$ = this.store.select(
+    ProjectSelectors.selectArchitectureConnections
+  );
+  architectureMetadata$ = this.store.select(
+    ProjectSelectors.selectArchitectureMetadata
+  );
+
+  // Selectors - Projects List
+  projects$ = this.store.select(ProjectSelectors.selectProjects);
+  projectsCount$ = this.store.select(ProjectSelectors.selectProjectsCount);
+
+  // Selectors - Loading States
+  loading$ = this.store.select(ProjectSelectors.selectLoading);
+  loadingArchitecture$ = this.store.select(
+    ProjectSelectors.selectLoadingArchitecture
+  );
+  creating$ = this.store.select(ProjectSelectors.selectCreating);
+  isLoading$ = this.store.select(ProjectSelectors.selectIsLoading);
+
+  // Selectors - Error States
+  error$ = this.store.select(ProjectSelectors.selectError);
+  hasError$ = this.store.select(ProjectSelectors.selectHasError);
+  hasCurrentProject$ = this.store.select(
+    ProjectSelectors.selectHasCurrentProject
+  );
+  hasCurrentArchitecture$ = this.store.select(
+    ProjectSelectors.selectHasCurrentArchitecture
+  );
+
+  // Actions
+
+  /**
+   * Load all projects
+   */
+  loadProjects(): void {
+    this.store.dispatch(ProjectActions.loadProjects());
+  }
+
+  /**
+   * Load a specific project by ID (basic info only)
+   */
+  loadProject(projectId: string): void {
+    this.store.dispatch(ProjectActions.loadProject({ projectId }));
+  }
+
+  /**
+   * Load full project architecture (components, connections, technologies)
+   */
+  loadProjectArchitecture(projectId: string): void {
+    this.store.dispatch(ProjectActions.loadProjectArchitecture({ projectId }));
+  }
+
+  /**
+   * Create a new project from schema
+   * Automatically navigates to /project/:id on success
+   */
+  createProject(schema: any, chatId: string): void {
+    this.store.dispatch(ProjectActions.createProject({ schema, chatId }));
+  }
+
+  /**
+   * Set the current project ID (for navigation/selection)
+   * This will also trigger loading of project details
+   */
+  setCurrentProject(projectId: string): void {
+    this.store.dispatch(ProjectActions.setCurrentProject({ projectId }));
+  }
+
+  /**
+   * Set project details directly (legacy method)
+   * Use this when you already have the project object
+   */
+  setProjectDetails(project: ProjectResult): void {
+    this.store.dispatch(ProjectActions.setProjectDetails({ project }));
+  }
+
+  /**
+   * Reset the project state to initial values
+   */
+  resetProjectState(): void {
+    this.store.dispatch(ProjectActions.resetProjectState());
+  }
+
+  /**
+   * Get a specific project by ID as an observable
+   */
+  getProjectById(projectId: string) {
+    return this.store.select(ProjectSelectors.selectProjectById(projectId));
+  }
 }

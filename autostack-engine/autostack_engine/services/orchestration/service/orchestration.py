@@ -49,7 +49,7 @@ class OrchestrationService(BaseService):
         project = data['project']
         
         project_id = project.get('id') or str(uuid4())
-        
+        print(project)
         return {
             'id': project_id,
             'name': project['name'],
@@ -59,7 +59,9 @@ class OrchestrationService(BaseService):
             'metadata': {
                 'tags': project.get('tags', []),
                 'environment': project.get('environment', 'development')
-            }
+            },
+            'chat_id': project.get('chat_id', '')
+            
         }
     
     def transform_technologies_data(self, data: Dict[str, Any], project_id: str) -> list[Dict[str, Any]]:

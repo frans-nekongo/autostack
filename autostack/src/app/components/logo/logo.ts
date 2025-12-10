@@ -52,17 +52,17 @@ export class Logo implements OnChanges {
         svgElement.setAttribute('height', this.height);
       }
       if (this.color) {
+        // Set fill on the root SVG element
         svgElement.setAttribute('fill', this.color);
-        // Also set currentColor for paths that inherit color
+
+        // Override ALL fill attributes on child elements
         svgElement
-          .querySelectorAll('path, circle, rect, polygon, polyline')
+          .querySelectorAll(
+            'path, circle, rect, polygon, polyline, ellipse, line'
+          )
           .forEach((el) => {
-            if (
-              !el.hasAttribute('fill') ||
-              el.getAttribute('fill') === 'currentColor'
-            ) {
-              el.setAttribute('fill', this.color!);
-            }
+            // Remove the condition - just set the color on everything
+            el.setAttribute('fill', this.color!);
           });
       }
     }

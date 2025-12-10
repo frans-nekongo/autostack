@@ -14,29 +14,108 @@ export interface ProjectPartialState {
 
 const reducer = createReducer(
   initialProjectState,
+
+  // Load All Projects
+  on(ProjectActions.loadProjects, (state) => ({
+    ...state,
+    loading: true,
+    error: null,
+  })),
+  on(ProjectActions.loadProjectsSuccess, (state, { projects }) => ({
+    ...state,
+    projects,
+    loading: false,
+    error: null,
+  })),
+  on(ProjectActions.loadProjectsFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error,
+  })),
+
+  // Load Single Project
+  on(ProjectActions.loadProject, (state, { projectId }) => ({
+    ...state,
+    currentProjectId: projectId,
+    loading: true,
+    error: null,
+  })),
+  on(ProjectActions.loadProjectSuccess, (state, { project }) => ({
+    ...state,
+    currentProject: project,
+    currentProjectId: project.id,
+    loading: false,
+    error: null,
+  })),
+  on(ProjectActions.loadProjectFailure, (state, { error }) => ({
+    ...state,
+    currentProject: null,
+    loading: false,
+    error,
+  })),
+
+  // Load Project Architecture
+  on(ProjectActions.loadProjectArchitecture, (state) => ({
+    ...state,
+    loadingArchitecture: true,
+    error: null,
+  })),
   on(
-    ProjectActions.setProject,
-    (state, { id, name, author, description, version, status, metadata, git_info }) => ({
+    ProjectActions.loadProjectArchitectureSuccess,
+    (state, { architecture }) => ({
       ...state,
-      project: {
-        id,
-        name,
-        author,
-        description,
-        version,
-        status,
-        metadata,
-        git_info
-      },
-      loading: false,
+      currentArchitecture: architecture,
+      loadingArchitecture: false,
       error: null,
     })
-  )
+  ),
+  on(ProjectActions.loadProjectArchitectureFailure, (state, { error }) => ({
+    ...state,
+    currentArchitecture: null,
+    loadingArchitecture: false,
+    error,
+  })),
+
+  // Create Project
+  on(ProjectActions.createProject, (state) => ({
+    ...state,
+    creating: true,
+    error: null,
+  })),
+  on(ProjectActions.createProjectSuccess, (state, { projectId }) => ({
+    ...state,
+    currentProjectId: projectId,
+    creating: false,
+    error: null,
+  })),
+  on(ProjectActions.createProjectFailure, (state, { error }) => ({
+    ...state,
+    creating: false,
+    error,
+  })),
+
+  // Set Current Project
+  on(ProjectActions.setCurrentProject, (state, { projectId }) => ({
+    ...state,
+    currentProjectId: projectId,
+  })),
+
+  // Set Project Details (legacy)
+  on(ProjectActions.setProjectDetails, (state, { project }) => ({
+    ...state,
+    currentProject: project,
+    currentProjectId: project.id,
+    loading: false,
+    error: null,
+  })),
+
+  // Reset State
+  on(ProjectActions.resetProjectState, () => initialProjectState)
 );
 
 export function projectReducer(
-    state: IProjectState | undefined,
-    action: Action
+  state: IProjectState | undefined,
+  action: Action
 ) {
-    return reducer(state, action)
+  return reducer(state, action);
 }

@@ -7,20 +7,19 @@ import {
   ElementRef,
   ViewChild,
 } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { catchError, of, Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectFacade } from '../../../state/project/project.facade';
 import mermaid from 'mermaid';
 import { Apollo, gql } from 'apollo-angular';
 import { provideIcons, NgIcon } from '@ng-icons/core';
 import { diVscodePlain } from '@ng-icons/devicon/plain';
-import {
-  ProjectService,
-} from '../../../services/project/project-service';
+import { ProjectService } from '../../../services/project/project-service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-overview',
-  imports: [RouterModule, NgIcon],
+  imports: [RouterModule, NgIcon, CommonModule],
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
   providers: [provideIcons({ diVscodePlain })],
@@ -33,10 +32,17 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
   private projectFacade = inject(ProjectFacade);
   private projectService = inject(ProjectService);
   private router = inject(Router);
+    private route = inject(ActivatedRoute);
   private apollo = inject(Apollo);
 
-  project$ = this.projectFacade.project$;
-  project!: any;
+  currentProject$ = this.projectFacade.currentProject$;
+  currentArchitecture$ = this.projectFacade.currentArchitecture$;
+  isLoading$ = this.projectFacade.loading$;
+  loadingArchitecture$ = this.projectFacade.loadingArchitecture$;
+
+  architectureComponents$ = this.projectFacade.architectureComponents$;
+  architectureTechnologies$ = this.projectFacade.architectureTechnologies$;
+  architectureConnections$ = this.projectFacade.architectureConnections$;
 
   isLoading = false;
   error: string | null = null;
@@ -53,13 +59,14 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
       securityLevel: 'loose',
     });
 
-    this.projectFacade.project$
-      .pipe(takeUntil(this.destory$))
-      .subscribe((selectedProject) => {
-        if (selectedProject) {
-          this.project = selectedProject;
-        }
-      });
+    this.route.params.subscribe(params => {
+      const projectId = params['projectId'];
+      if (projectId) {
+        this.projectFacade.loadProject(projectId)
+        this.projectFacade.loadProjectArchitecture(projectId)
+      }
+    })
+    
   }
 
   ngAfterViewInit(): void {
@@ -70,7 +77,7 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
     try {
       this.isLoading = true;
 
-      this.projectFacade.project$
+      this.projectFacade.currentProject$
         .pipe(
           takeUntil(this.destory$),
           // Use switchMap to properly chain the observables
@@ -79,11 +86,6 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
               this.isLoading = false;
               return of(null);
             }
-
-            console.log(
-              'Fetching architecture for project ID:',
-              selectedProject.id
-            );
             return this.projectService.fetchProjectArchitecture(
               selectedProject.id
             );
@@ -100,11 +102,10 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
             this.isLoading = false;
 
             if (architectureResult) {
-              console.log('Architecture Result:', architectureResult);
 
               // Generate the C4 diagram
               this.diagramCode = this.projectService.generateC4Diagram(
-                architectureResult.data
+                architectureResult
               );
 
               // Render the diagram
@@ -165,11 +166,10 @@ export class Overview implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openInVSCode() {
-    this.projectFacade.project$
+    this.projectFacade.currentProject$
       .pipe(takeUntil(this.destory$))
       .subscribe((selectedProject) => {
         if (selectedProject) {
-          this.project = selectedProject;
           const projectPath = selectedProject.metadata?.directory as string;
           const encodedPath = encodeURIComponent(projectPath);
           window.location.href = `vscode://file/${encodedPath}`;

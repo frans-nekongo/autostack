@@ -3,7 +3,7 @@ import { provideIcons, NgIcon } from '@ng-icons/core';
 import { heroPaperAirplane } from '@ng-icons/heroicons/outline';
 import { ChatFacade } from '../../../state/chat/chat.facade';
 import { BehaviorSubject, Observable, Subject, take, takeUntil } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import {
   diAngularOriginal,
@@ -67,6 +67,7 @@ export class ChatDetail implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectService);
+  private router = inject(Router);
 
   currentChat$ = this.chatFacade.currentChat$;
   loading$ = this.chatFacade.loading$;
@@ -168,6 +169,8 @@ export class ChatDetail implements OnInit, OnDestroy {
             return;
           }
 
+          console.log(chat.id)
+
           // Call the project service
           this.projectService
             .createFullProject(chat.initialSchema, chat.id)
@@ -178,9 +181,8 @@ export class ChatDetail implements OnInit, OnDestroy {
 
                 // Optional: Show success notification
                 if (result.success) {
-                  console.log('Project created with ID:', result.projectId);
                   // You could also navigate to the project page
-                  // this.router.navigate(['/projects', result.projectId]);
+                  this.router.navigate(['/projects', result.projectId]);
                 }
               },
               error: (error) => {
