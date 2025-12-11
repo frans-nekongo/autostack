@@ -1,7 +1,7 @@
 TECHNOLOGY_CATALOG = {
     # Runtimes
     "nodejs": {"category": "runtime", "versions": ["18", "20", "22", "latest"], "nix_package": "nodejs"},
-    "python": {"category": "runtime", "versions": ["3.10", "3.11", "3.12", "latest"], "nix_package": "python3"},
+    "python": {"category": "runtime", "versions": ["3.9", "3.10", "3.11", "3.12", "latest"], "nix_package": "python3"},
     "java": {"category": "runtime", "versions": ["11", "17", "21", "latest"], "nix_package": "openjdk"},
     "go": {"category": "runtime", "versions": ["1.20", "1.21", "1.22", "latest"], "nix_package": "go"},
     

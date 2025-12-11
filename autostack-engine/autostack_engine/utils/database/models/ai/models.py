@@ -18,7 +18,7 @@ class ProjectChat(Document):
     updated_at: datetime = Field(default_factory=datetime.now)
     
     class Settings:
-        name = "ProjectChat"
+        name = "project_chat"
         indexes = [
             IndexModel([("created_at", -1)]),
         ]

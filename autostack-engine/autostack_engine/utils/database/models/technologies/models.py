@@ -66,7 +66,7 @@ class Technology(Document):
         if v == "latest":
             return v
             
-        name = values.get('name')
+        name = values.data.get('name')
         if name and name in TECHNOLOGY_CATALOG:
             available_versions = TECHNOLOGY_CATALOG[name].get('versions', [])
             if available_versions and v not in available_versions:

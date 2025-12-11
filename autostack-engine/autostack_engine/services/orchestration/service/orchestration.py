@@ -49,7 +49,6 @@ class OrchestrationService(BaseService):
         project = data['project']
         
         project_id = project.get('id') or str(uuid4())
-        print(project)
         return {
             'id': project_id,
             'name': project['name'],

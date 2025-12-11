@@ -3,9 +3,10 @@ import os
 import platform
 from pathlib import Path
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from autostack_engine.utils.database.models.activities.models import ActivityLog, ActivityType, CreateDetails, FieldChange, ProjectUpdateDetails
 from autostack_engine.utils.database.models.ai.models import ProjectChat
 from autostack_engine.utils.database.models.project.models import Project, ProjectMetadata
 from autostack_engine.utils.database.mongo_client import DatabaseManager
@@ -57,7 +58,7 @@ class ProjectService(BaseService):
         """
         try:
             db = DatabaseManager()
-            await db.connect([Project, ProjectChat])
+            await db.connect([Project, ProjectChat, ActivityLog])
             
             project_name = project_data.get("name")
             if not project_name:
@@ -101,6 +102,19 @@ class ProjectService(BaseService):
                 project_chat = await ProjectChat.get(project_data.get('chat_id', ''))
                 project_chat.chat_title = f'{project_name} schema generation'
                 await project_chat.save()
+                
+            activity = ActivityLog(
+                activity_type=ActivityType.CREATE_PROJECT,
+                project_id=project_data.get("id"),
+                project_name=project_name,
+                details=CreateDetails(
+                    target_id=project_data.get("id"),
+                    target_name=project_name,
+                    target_type="project",
+                ).model_dump()
+            )
+            
+            await activity.insert()
             
             self.log_info(f"Created project '{project_name}' with ID: {project.id}")
             return True, str(project.id), None
@@ -110,6 +124,24 @@ class ProjectService(BaseService):
             self.log_error(error_msg)
             return False, None, str(e)
     
+    
+    def track_field_change(
+        self,
+        field_changes: List[FieldChange],
+        field_name: str,
+        new_value: Any,
+        current_value: Any
+    ) -> Any:
+        """Track field change and return value to set"""
+        if new_value != current_value:
+            field_changes.append(FieldChange(
+                field=field_name,
+                old_value=current_value,
+                new_value=new_value
+            ))
+            return new_value
+        return current_value
+
     async def update_project(self, project_id: str, updates: Dict[str, Any]) -> tuple[bool, Optional[str]]:
         """
         Update an existing project.
@@ -123,33 +155,74 @@ class ProjectService(BaseService):
         """
         try:
             db = DatabaseManager()
-            await db.connect([Project])
+            await db.connect([Project, ActivityLog])
             
             project = await Project.get(project_id)
             if not project:
                 return False, f"Project '{project_id}' not found"
             
-            # Update allowed fields
+            # Track changes
+            field_changes: List[FieldChange] = []
+            
+            # Update fields with tracking
             if "name" in updates:
-                project.name = updates["name"]
+                project.name = self.track_field_change(field_changes, "name", updates["name"], project.name)
+            
             if "author" in updates:
-                project.author = updates["author"]
+                project.author = self.track_field_change(field_changes, "author", updates["author"], project.author)
+            
             if "description" in updates:
-                project.description = updates["description"]
+                project.description = self.track_field_change(field_changes, "description", updates["description"], project.description)
+            
             if "version" in updates:
-                project.version = updates["version"]
+                project.version = self.track_field_change(field_changes, "version", updates["version"], project.version)
             
             # Update metadata
             if "metadata" in updates:
-                if "tags" in updates["metadata"]:
-                    project.metadata.tags = updates["metadata"]["tags"]
-                if "environment" in updates["metadata"]:
-                    project.metadata.environment = updates["metadata"]["environment"]
+                if project.metadata is None:
+                    project.metadata = ProjectMetadata()
+                
+                metadata_updates = updates["metadata"]
+                
+                if "tags" in metadata_updates:
+                    project.metadata.tags = self.track_field_change(
+                        field_changes, "metadata.tags", 
+                        metadata_updates["tags"], project.metadata.tags
+                    )
+                
+                if "environment" in metadata_updates:
+                    project.metadata.environment = self.track_field_change(
+                        field_changes, "metadata.environment", 
+                        metadata_updates["environment"], project.metadata.environment
+                    )
+                
+                if "directory" in metadata_updates:
+                    project.metadata.directory = self.track_field_change(
+                        field_changes, "metadata.directory", 
+                        metadata_updates["directory"], project.metadata.directory
+                    )
             
-            project.metadata.last_modified = datetime.now().isoformat()
+            # Update last_modified
+            current_time = datetime.now().isoformat()
+            project.metadata.last_modified = self.track_field_change(
+                field_changes, "metadata.last_modified",
+                current_time, project.metadata.last_modified
+            )
+            
+            # Save project
             await project.save()
             
-            self.log_info(f"Updated project '{project_id}'")
+            # Log activity if changes were made
+            if field_changes:
+                await ActivityLog(
+                    activity_type=ActivityType.UPDATE_PROJECT,
+                    project_id=UUID(project_id),
+                    project_name=project.name,
+                    details=ProjectUpdateDetails(field_changes=field_changes).model_dump()
+                ).insert()
+                
+                self.log_info(f"Updated project '{project_id}' - {len(field_changes)} changes")
+            
             return True, None
             
         except Exception as e:
@@ -170,7 +243,7 @@ class ProjectService(BaseService):
         """
         try:
             db = DatabaseManager()
-            await db.connect([Project])
+            await db.connect([Project, ActivityLog])
             
             project = await Project.get(project_id)
             if not project:
@@ -181,6 +254,13 @@ class ProjectService(BaseService):
             
             # Delete from database
             await project.delete()
+            activity = ActivityLog(
+                activity_type=ActivityType.DELETE_CHAT,
+                project_id=project_id,
+                project_name=project.name
+            )
+            
+            await activity.insert()
             
             if delete_files and project_directory:
                 try:

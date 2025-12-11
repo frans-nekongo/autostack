@@ -1,20 +1,24 @@
 """
-Migration: created project chat
-Created: 2025-11-30T15:26:24.915904
+Migration: created activity log
+Created: 2025-12-10T19:58:32.508363
 """
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 import logging
 
-from autostack_engine.utils.database.models.ai.models import ProjectChat
+from autostack_engine.utils.database.models.activities.models import ActivityLog
+
+
+
 logger = logging.getLogger(__name__)
 
 async def up():
     """
     Apply the migration
     """
-    logger.info('Applying migration: Created Project Chat')
+    # Add your migration logic here
+    logger.info('Applying migration: created activity log')
     mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     database_name = os.getenv("DATABASE_NAME", "autostack")
     
@@ -25,7 +29,7 @@ async def up():
     await init_beanie(
         database=database,
         document_models=[
-            ProjectChat
+            ActivityLog
         ]
     )
     

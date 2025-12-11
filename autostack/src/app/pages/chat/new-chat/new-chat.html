@@ -1,30 +1,28 @@
 <div class="flex flex-col h-full w-full overflow-hidden px-32 py-16 justify-center gap-4">
-    <div class="flex items-center gap-2 justify-center">
-        <app-logo name="logo" width="32px" height="32px" color="blue"></app-logo>
-        <p class="font-bold">Let's get started</p>
-    </div>
+  <div class="flex items-center gap-2 justify-center">
+    <app-logo name="logo" width="32px" height="32px" color="#3a6ea5"></app-logo>
+    <p class="font-bold">Let's get started</p>
+  </div>
+  <div class="w-full">
+    <!-- Text Area Container -->
     <div class="w-full">
-        <!-- Text Area Container -->
-        <div class="w-full">
-          <div class="relative">
-            <textarea
-            [(ngModel)]="prompt"
-            (keydown)="onKeyDown($event)"
-              placeholder="Describe your project architecture here... (Press Enter to submit, Shift+Enter for new line)"
-              class="w-full min-h-[50px] max-h-[500px] p-3 pr-10 text-slate-700 placeholder-slate-400 bg-slate-50 border-2 border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
-              rows="6"></textarea>
-            <div>
-              <!-- Character Count -->
-              <div class="absolute bottom-3 left-3 text-sm text-slate-400">
-                {{ prompt.length }} characters
-              </div>
-              <!-- Submit Button -->
-              <button [disabled]="!prompt.trim()"
-                class="absolute bottom-3 right-3 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl">
-                <ng-icon name="heroPaperAirplane" class="text-ocean-900"></ng-icon>
-              </button>
-            </div>
+      <div class="relative">
+        <textarea [(ngModel)]="prompt" (keydown)="onKeyDown($event)"
+          placeholder="Describe your project architecture here... (Press Enter to submit, Shift+Enter for new line)"
+          class="w-full min-h-[50px] max-h-[500px] p-3 pr-10 text-slate-700 placeholder-slate-400 bg-slate-50 border-2 border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+          rows="6"></textarea>
+        <div>
+          <!-- Character Count -->
+          <div class="absolute bottom-3 left-3 text-sm text-slate-400">
+            {{ prompt.length }} characters
           </div>
+          <!-- Submit Button -->
+          <button [disabled]="!prompt.trim()"
+            class="absolute bottom-3 right-3 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl">
+            <ng-icon name="heroPaperAirplane" class="text-ocean-900"></ng-icon>
+          </button>
         </div>
       </div>
+    </div>
+  </div>
 </div>

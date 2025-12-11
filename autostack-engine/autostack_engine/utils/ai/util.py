@@ -87,25 +87,33 @@ def generate_project_config(user_prompt: str) -> dict:
     for category in ["runtime", "database", "cache", "queue"]:
         techs_in_category = [tech for tech, info in TECHNOLOGY_CATALOG.items() if info["category"] == category]
         available_techs += f"- {category.title()}: {', '.join(techs_in_category)}\n"
-    
+
+    # Add version information
+    available_techs += "\nAvailable Versions for Each Technology:\n"
+    for tech, info in sorted(TECHNOLOGY_CATALOG.items()):
+        versions_str = ', '.join([v for v in info["versions"] if v != "latest"])
+        available_techs += f"- {tech}: {versions_str} (or 'latest')\n"
+
     # System instructions
     system_prompt = f"""You are an AI assistant that generates project configuration JSON 
     based on user requirements. Use the provided schema to create appropriate project, 
     technologies, components, connections, and environments.
-    
+
     Follow these rules:
     - Assign unique component_ids (e.g., "auth-service", "user-service", "frontend")
     - Set appropriate ports for each technology (8000-9000 range)
     - Create logical connections between components
     - Include all necessary environment variables
     - Use realistic directory structures
-    
+
     TECHNOLOGY RESTRICTIONS:
     {available_techs}
     - ONLY use technologies from the list above
     - For technology "type" field, use the category (runtime, database, cache, queue)
-    - Use "latest" as version unless specified otherwise
-    
+    - Use "latest" as version UNLESS the user specifies a specific version in their requirements
+    - If user specifies a version, use the exact version string from the available versions list
+    - If no version is specified, default to "latest"
+
     Return ONLY valid JSON without any additional text, markdown, or code formatting.
     """
     
