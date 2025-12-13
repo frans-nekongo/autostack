@@ -56,7 +56,26 @@
     @if (isLoading$ | async) {
     <div class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ocean-500"></div>
-        <p class="ml-3 text-gray-600">Loading projects...</p>
+        <p class="ml-3">Loading projects...</p>
+    </div>
+    } @else {
+    <!-- All Projects -->
+    <div class="flex flex-col gap-3">
+        @for (item of filteredProjects$ | async; track item.id) {
+        <div class="flex flex-col gap-1 border-b pb-4 cursor-pointer" (click)="onSelect(item)">
+            <div class="flex gap-2">
+                <img [src]="item.avatarDataUrl" width="30" class="border rounded p-1"/>
+                <p class="text-lg text-ocean-600 font-bold hover:underline hover:decoration-2 hover:text-ocean-500">
+                    {{ item.name }}
+                </p>
+
+            </div>
+            <p class="text-xs text-slate-700">{{ item.description || 'No description' }}</p>
+            <p class="text-xs text-slate-500">
+                Updated {{ formatRelativeTime(item.metadata?.lastModified!) }} ago
+            </p>
+        </div>
+        }
     </div>
     }
 
@@ -89,20 +108,7 @@
     </div>
     }
 
-    <!-- All Projects -->
-    <div class="flex flex-col gap-3">
-        @for (item of filteredProjects$ | async; track item.id) {
-        <div class="flex flex-col gap-1 border-b pb-4 cursor-pointer" (click)="onSelect(item)">
-            <p class="text-lg text-ocean-600 font-bold hover:underline hover:decoration-2 hover:text-ocean-500">
-                {{ item.name }}
-            </p>
-            <p class="text-xs text-slate-700">{{ item.description || 'No description' }}</p>
-            <p class="text-xs text-slate-500">
-                Updated {{ formatRelativeTime(item.metadata?.lastModified!) }} ago
-            </p>
-        </div>
-        }
-    </div>
+
 
     <!-- Results Count -->
     @if ((filteredProjects$ | async)?.length! > 0 && !(isLoading$ | async)) {

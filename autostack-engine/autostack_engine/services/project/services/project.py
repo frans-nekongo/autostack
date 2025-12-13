@@ -11,6 +11,7 @@ from autostack_engine.utils.database.models.ai.models import ProjectChat
 from autostack_engine.utils.database.models.project.models import Project, ProjectMetadata
 from autostack_engine.utils.database.mongo_client import DatabaseManager
 from autostack_engine.utils.orchestration.models import BaseService
+from autostack_engine.utils.project.icon_generator import IdenticonGenerator
 
 
 class ProjectService(BaseService):
@@ -85,6 +86,10 @@ class ProjectService(BaseService):
                 environment=project_data.get("metadata", {}).get("environment", "development")
             )
             
+            generator = IdenticonGenerator()
+            img, hash_hex = generator.generate_identicon(project_name)
+            avatar_base64 = generator.image_to_base64(img)
+            
             # Create project
             project = Project(
                 id=project_data.get("id"),
@@ -92,6 +97,8 @@ class ProjectService(BaseService):
                 author=project_data.get("author", "Unknown"),
                 description=project_data.get("description", ""),
                 version=project_data.get("version", "1.0.0"),
+                avatar_data=avatar_base64,
+                avatar_hash=hash_hex,
                 metadata=metadata,
                 chat_id=project_data.get('chat_id', '')
             )

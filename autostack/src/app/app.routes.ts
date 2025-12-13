@@ -38,5 +38,5 @@ export const routes: Routes = [
     ]},
     {path: 'create-project', component: CreateProject},
     {path: 'project', redirectTo: '/projects', pathMatch: 'full'},
-    {path: 'projects', component: ProjectsPage}
+    {path: 'projects', component: ProjectsPage, data: {title: 'Projects'}}
 ];

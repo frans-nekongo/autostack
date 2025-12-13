@@ -41,6 +41,10 @@ class FullProjectInput:
     connections: Optional[List[ConnectionInput]] = None
     
     
+def get_operation_store(info: strawberry.Info):
+    """Get operation store from GraphQL context"""
+    return info.context["operation_store"]
+
 
     
 @strawberry.type

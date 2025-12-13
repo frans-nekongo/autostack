@@ -48,6 +48,8 @@ class Project(Document):
     author: Optional[str] = None
     description: Optional[str] = None
     version: str = "1.0.0"
+    avatar_data: Optional[str] = None
+    avatar_hash: Optional[str] = None
     status: ProjectStatus = ProjectStatus.CREATED
     metadata: Optional[ProjectMetadata] = None
     

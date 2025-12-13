@@ -26,6 +26,8 @@ export interface ProjectResult {
   status?: string | null;
   metadata?: ProjectMetadata | null;
   gitInfo?: GitInfo | null;
+  avatarDataUrl: string;
+  avatarHash: string;
 }
 
 interface EnvironmentVariable {
@@ -148,6 +150,8 @@ export class ProjectService {
             isDirty
             commits
           }
+          avatarDataUrl
+          avatarHash
         }
       }
     `;
@@ -193,6 +197,8 @@ export class ProjectService {
             isDirty
             commits
           }
+          avatarDataUrl
+          avatarHash
         }
       }
     `;

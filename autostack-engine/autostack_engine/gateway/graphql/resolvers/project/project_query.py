@@ -12,6 +12,7 @@ from autostack_engine.utils.database.models.project.models import Project
 from autostack_engine.utils.database.models.components.models import Component, Connection
 from autostack_engine.utils.database.models.technologies.models import Technology
 from autostack_engine.utils.database.mongo_client import DatabaseManager
+from autostack_engine.utils.project.icon_generator import IdenticonGenerator
 
 logger = structlog.get_logger()
 
@@ -39,6 +40,8 @@ class ProjectInfo:
     description: Optional[str] = None
     version: str = "1.0.0"
     status: Optional[str] = "created"
+    avatar_data_url: str
+    avatar_hash: Optional[str]
     metadata: Optional[ProjectMetadata] = None
     git_info: Optional[GitInfo] = None
     
@@ -121,7 +124,9 @@ class ProjectQuery:
             version=result.version,
             status=result.status.value if hasattr(result.status, 'value') else result.status,
             metadata=metadata,
-            git_info=git_info
+            git_info=git_info,
+            avatar_data_url=IdenticonGenerator.base64_to_data_url(result.avatar_data),
+            avatar_hash=result.avatar_hash
         )
         
     @strawberry.field
@@ -157,7 +162,9 @@ class ProjectQuery:
                         version=project.version,
                         status=project.status.value if project.status else "created",
                         metadata=project.metadata,
-                        git_info=git_info
+                        git_info=git_info,
+                        avatar_data_url=IdenticonGenerator.base64_to_data_url(project.avatar_data),
+                        avatar_hash=project.avatar_hash
                     )
                     project_infos.append(project_info)
                     count += 1

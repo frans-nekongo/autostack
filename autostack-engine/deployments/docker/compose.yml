@@ -1,61 +1,34 @@
 services:
-  kafka:
-    image: apache/kafka:latest
-    container_name: autostack_broker
-    hostname: broker
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: redis
     ports:
-      - "9092:9092"
-    expose:
-      - "9093"
-    environment:
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092, PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
-      KAFKA_LISTENERS: PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_NUM_PARTITIONS: 3
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - autostack
-  
-  kafka-init:
-    image: apache/kafka:latest
-    container_name: autostack-kafka-init
-    depends_on:
-      - kafka
-    volumes:
-      - ../kafka/scripts:/scripts
-    command: > 
-      bash -c "
-        mkdir -p /tmp/kafka-init &&
-        cp /scripts/init.sh /tmp/kafka-init &&
-        chmod +x /tmp/kafka-init/init.sh &&
-        /tmp/kafka-init/init.sh
-      "
+      - redis-data:/data
     networks:
       - autostack
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: autostack-kafka-ui
+  redis-insight:
+    image: redis/redisinsight:latest
+    restart: always
     depends_on:
-      - kafka
+      - redis
     ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_O_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      - "5540:5540"
     networks:
       - autostack
+    volumes:
+      - redisinsight-data:/db
+      - ./redisinsight-connections:/connections 
+    environment:
+      - RI_REDIS_HOST=redis
+      - RI_REDIS_PORT=6379
+      - RI_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - RI_REDIS_USER=default  
+      - RI_HOST=0.0.0.0 
 
   mongo:
     container_name: mongo
@@ -95,3 +68,7 @@ networks:
 
 volumes:
   mongo_data:
+  redis-data:
+    driver: local
+  redisinsight-data:
+    driver: local

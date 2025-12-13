@@ -21,13 +21,11 @@ import { ChatFacade } from '../../state/chat/chat.facade';
 })
 export class Home implements OnInit {
   private router = inject(Router);
-  private projectService = inject(ProjectService);
   private userService = inject(UserService);
   private chatFacade = inject(ChatFacade);
   prompt: string = '';
   aiForm!: FormGroup;
 
-  projects: ProjectResult[] = [];
   isLoading = false;
   error: string | null = null;
 
@@ -35,7 +33,6 @@ export class Home implements OnInit {
 
   ngOnInit(): void {
     this.loadUserFullName();
-    this.loadProjects();
   }
 
   loadUserFullName(): void {
@@ -51,55 +48,6 @@ export class Home implements OnInit {
           this.userFullName = userResult.fullname;
         },
       });
-  }
-
-  loadProjects(): void {
-    this.isLoading = true;
-    this.error = null;
-
-    this.projectService
-      .fetchAllProjects()
-      .pipe(
-        catchError((error) => {
-          console.error('Error fetching projects:', error);
-          this.error = 'Failed to load projects. Please try again later.';
-          this.isLoading = false;
-          return of(null);
-        })
-      )
-      .subscribe({
-        next: (projectResult: any) => {
-          this.isLoading = false;
-
-          if (projectResult) {
-            this.projects = projectResult.map((project: any) =>
-              this.transformProjectResult(project)
-            );
-          } else {
-            this.error = 'No projects found.';
-          }
-        },
-        error: (error) => {
-          console.error('Error in subscription:', error);
-          this.isLoading = false;
-          this.error = 'An unexpected error occurred.';
-        },
-      });
-  }
-
-  private transformProjectResult(projectResult: ProjectResult): ProjectResult {
-    return {
-      id: projectResult.id,
-      name: projectResult.name,
-      author: projectResult.author,
-      description: projectResult.description || 'No description available',
-      version: projectResult.version,
-      status: projectResult.status,
-      metadata: projectResult.metadata,
-      gitInfo: {
-        ...projectResult.gitInfo,
-      },
-    };
   }
 
   onKeyDown(event: KeyboardEvent) {

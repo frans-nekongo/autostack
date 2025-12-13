@@ -3,7 +3,9 @@
     <div>
 
         <div class="flex items-center gap-10 mb-6">
-            <p class="font-bold">Projects</p>
+            <a href="/projects">
+                <p class="font-bold">Projects</p>
+            </a>
             <a class="flex items-center bg-ocean-500 py-1 px-2 rounded gap-2" href="/create-project">
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clip-path="url(#clip0_55_314)">
@@ -31,7 +33,7 @@
             } @else {
             @for (project of projects$ | async; track $index) {
             <div class="flex items-center gap-1 cursor-pointer" (click)="onSelectProject(project)">
-                <ng-icon name="saxDirectNormalBulk" class="text-ocean-500" size="20"></ng-icon>
+                <img [src]="project.avatarDataUrl" width="25" class="border rounded p-1"/>
                 <p class="text-sm  text-slate-700">{{project.name}}</p>
             </div>
             }}
