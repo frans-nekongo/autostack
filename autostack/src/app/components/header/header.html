@@ -12,9 +12,10 @@
             <ng-icon name="heroSparklesSolid" class="text-ocean-500" size="20"></ng-icon>
             <p class="text-sm text-slate-700">Chats</p>
         </a>
-        <a class="flex items-center gap-2">
+        <button class="flex items-center gap-2" (click)="showModal()">
             <ng-icon name="saxNotificationBold" class="text-ocean-500" size="20"></ng-icon>
             <p class="text-sm text-slate-700">Notifications</p>
-        </a>
+        </button>
+        <app-notifications-pane [isOpen]="modalOpen" (closeModal)="closeModal()"></app-notifications-pane>
     </div>
 </header>

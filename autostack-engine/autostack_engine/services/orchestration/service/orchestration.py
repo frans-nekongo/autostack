@@ -5,13 +5,12 @@ from uuid import uuid4
 import better_exceptions
 import structlog
 
-
-# Service Imports
 from autostack_engine.services.environment.services.technologies import TechnologyService
 from autostack_engine.services.project.services.project import ProjectService
 from autostack_engine.services.component.services.components import ComponentService
 from autostack_engine.services.environment.services.production import ProductionService
 from autostack_engine.utils.orchestration.models import BaseService
+from autostack_engine.utils.project.subscription import ProjectCreationStatus
 
 
 better_exceptions.hook()
@@ -60,7 +59,6 @@ class OrchestrationService(BaseService):
                 'environment': project.get('environment', 'development')
             },
             'chat_id': project.get('chat_id', '')
-            
         }
     
     def transform_technologies_data(self, data: Dict[str, Any], project_id: str) -> list[Dict[str, Any]]:
@@ -121,18 +119,25 @@ class OrchestrationService(BaseService):
         
         return transformed_components, transformed_connections
     
-    async def orchestrate_full_project(self, input_data: Dict[str, Any]) -> tuple[bool, Optional[str], Optional[str]]:
+    async def orchestrate_full_project(
+        self, 
+        input_data: Dict[str, Any],
+        operation_store=None,
+        operation_id: Optional[str] = None
+    ) -> tuple[bool, Optional[str], Optional[str]]:
         """
         Execute the complete project creation workflow.
         
         Steps:
-        1. Create project directory and database record
-        2. Setup development environment with technologies (devbox)
-        3. Create components and connections
-        4. Generate production docker-compose configuration
+        1. Create project directory and database record (30%)
+        2. Setup development environment with technologies (50%)
+        3. Create components and connections (70%)
+        4. Generate production docker-compose configuration (90-100%)
         
         Args:
             input_data: Complete project specification
+            operation_store: Redis operation store for progress tracking (optional)
+            operation_id: Operation ID for progress updates (optional)
             
         Returns:
             tuple: (success: bool, project_id: Optional[str], error_message: Optional[str])
@@ -150,19 +155,43 @@ class OrchestrationService(BaseService):
             self.log_info(f"Beginning orchestration for: {input_data['project']['name']}")
             self.log_info("========================================")
             
-            # Step 1: Create Project
+            # Step 2: Creating Project (30%)
+            if operation_store and operation_id:
+                await operation_store.update_operation(
+                    operation_id,
+                    ProjectCreationStatus.CREATING_PROJECT,
+                    f"Creating project structure for '{input_data['project']['name']}'",
+                    30
+                )
+            
             self.log_info("Step 1/4: Creating project...")
             project_data = self.transform_project_data(input_data)
             
             success, project_id, error = await self.project_service.create_project(project_data)
             if not success:
                 self.log_error(f"Failed to create project: {error}")
+                if operation_store and operation_id:
+                    await operation_store.update_operation(
+                        operation_id,
+                        ProjectCreationStatus.FAILED,
+                        f"Project creation failed: {error}",
+                        100,
+                        error=error
+                    )
                 return False, None, error
             
             self.log_info(f"✓ Project '{project_data['name']}' created with ID: {project_id}")
             
-            # Step 2: Setup Development Environment (Technologies)
+            # Step 3: Setup Development Environment - Technologies (50%)
             if input_data.get('technologies'):
+                if operation_store and operation_id:
+                    await operation_store.update_operation(
+                        operation_id,
+                        ProjectCreationStatus.CREATING_TECHNOLOGIES,
+                        f"Setting up {len(input_data['technologies'])} technologies",
+                        50
+                    )
+                
                 self.log_info("Step 2/4: Setting up development environment...")
                 tech_data = self.transform_technologies_data(input_data, project_id)
                 
@@ -171,14 +200,30 @@ class OrchestrationService(BaseService):
                 )
                 if not success:
                     self.log_error(f"Failed to create technologies: {error}")
+                    if operation_store and operation_id:
+                        await operation_store.update_operation(
+                            operation_id,
+                            ProjectCreationStatus.FAILED,
+                            f"Technology setup failed: {error}",
+                            100,
+                            error=error
+                        )
                     return False, project_id, error
                 
                 self.log_info(f"✓ Development environment configured with {len(tech_ids)} technologies")
             else:
                 self.log_info("Step 2/4: Skipped (no technologies specified)")
             
-            # Step 3: Create Components and Connections
+            # Step 4: Create Components and Connections (70%)
             if input_data.get('components'):
+                if operation_store and operation_id:
+                    await operation_store.update_operation(
+                        operation_id,
+                        ProjectCreationStatus.CREATING_COMPONENTS,
+                        f"Creating {len(input_data['components'])} components",
+                        70
+                    )
+                
                 self.log_info("Step 3/4: Creating components and connections...")
                 comp_data, conn_data = self.transform_components_data(input_data, project_id)
                 
@@ -187,24 +232,69 @@ class OrchestrationService(BaseService):
                 )
                 if not success:
                     self.log_error(f"Failed to create components: {error}")
+                    if operation_store and operation_id:
+                        await operation_store.update_operation(
+                            operation_id,
+                            ProjectCreationStatus.FAILED,
+                            f"Component creation failed: {error}",
+                            100,
+                            error=error
+                        )
                     return False, project_id, error
                 
-                self.log_info(f"✓ Created {len(comp_ids)} components with {len(conn_data)} connections")
+                conn_count = len(conn_data) if conn_data else 0
+                self.log_info(f"✓ Created {len(comp_ids)} components with {conn_count} connections")
             else:
                 self.log_info("Step 3/4: Skipped (no components specified)")
             
-            # Step 4: Generate Production Configuration
+            # Step 5: Creating Connections (80%)
+            if input_data.get('connections'):
+                if operation_store and operation_id:
+                    await operation_store.update_operation(
+                        operation_id,
+                        ProjectCreationStatus.CREATING_CONNECTIONS,
+                        f"Establishing {len(input_data['connections'])} connections",
+                        80
+                    )
+            
+            # Step 6: Finalizing - Generate Production Configuration (90%)
             if input_data.get('components') and input_data.get('technologies'):
+                if operation_store and operation_id:
+                    await operation_store.update_operation(
+                        operation_id,
+                        ProjectCreationStatus.FINALIZING,
+                        "Generating production configuration",
+                        90
+                    )
+                
                 self.log_info("Step 4/4: Generating production configuration...")
                 
                 success, compose_path, error = await self.production_service.generate_docker_compose(project_id)
                 if not success:
                     self.log_error(f"Failed to generate docker-compose: {error}")
+                    if operation_store and operation_id:
+                        await operation_store.update_operation(
+                            operation_id,
+                            ProjectCreationStatus.FAILED,
+                            f"Production config generation failed: {error}",
+                            100,
+                            error=error
+                        )
                     return False, project_id, error
                 
                 self.log_info(f"✓ Production docker-compose.yml generated at {compose_path}")
             else:
                 self.log_info("Step 4/4: Skipped (requires both components and technologies)")
+            
+            # Step 7: Completed (100%)
+            if operation_store and operation_id:
+                await operation_store.update_operation(
+                    operation_id,
+                    ProjectCreationStatus.COMPLETED,
+                    f"Successfully created project: {input_data['project']['name']}",
+                    100,
+                    project_id=project_id
+                )
             
             self.log_info("========================================")
             self.log_info(f"✓✓✓ Successfully orchestrated project '{project_data['name']}' (ID: {project_id})")
@@ -216,6 +306,16 @@ class OrchestrationService(BaseService):
             error_msg = f"Orchestration failed at project_id={project_id}: {str(e)}"
             self.log_error(error_msg)
             self.log_error(traceback.format_exc())
+            
+            if operation_store and operation_id:
+                await operation_store.update_operation(
+                    operation_id,
+                    ProjectCreationStatus.FAILED,
+                    "An unexpected error occurred during project creation",
+                    100,
+                    error=error_msg
+                )
+            
             return False, project_id, error_msg
     
     async def orchestrate_project_only(self, project_data: Dict[str, Any]) -> tuple[bool, Optional[str], Optional[str]]:
@@ -267,5 +367,3 @@ class OrchestrationService(BaseService):
             error_msg = f"Failed to generate production config: {str(e)}"
             self.log_error(error_msg)
             return False, None, error_msg
-                
-            

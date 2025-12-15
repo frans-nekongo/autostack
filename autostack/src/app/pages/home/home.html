@@ -1,22 +1,20 @@
 <div class="flex w-full h-full overflow-hidden">
   <app-side-bar class="flex-shrink-0" />
-  
+
   <div class="flex-1 overflow-y-auto min-w-0">
     <div class="p-4">
       <div class="flex flex-col mb-4">
-        <p class="text-sm">Good Morning</p>
+        <p class="text-sm">{{greeting}}</p>
         <h1 class="text-3xl">{{userFullName}}</h1>
       </div>
-      
+
       <div class="w-full">
         <!-- Text Area Container -->
         <div class="w-full">
           <div class="relative">
-            <textarea
-            [(ngModel)]="prompt"
-            (keydown)="onKeyDown($event)"
+            <textarea [(ngModel)]="prompt" (keydown)="onKeyDown($event)"
               placeholder="Describe your project architecture here... (Press Enter to submit, Shift+Enter for new line)"
-              class="w-full min-h-[50px] max-h-[120px] p-3 pr-10 text-slate-700 placeholder-slate-400 bg-slate-50 border-2 border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+              class="w-full min-h-[50px] max-h-[120px] p-3 pr-10 text-slate-700 placeholder-slate-400 bg-slate-50 border-2 border-slate-200 rounded focus:bg-white-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
               rows="4"></textarea>
             <div>
               <!-- Character Count -->
@@ -32,10 +30,50 @@
           </div>
         </div>
       </div>
-      
+
       <div class="mt-4">
         <h1>Recent Activity</h1>
-        <div class="flex">
+        <div class="flex flex-col gap-6 mt-4">
+          @for (activityLog of activityLogs$ | async; track $index) {
+          <div class="flex flex-col p-4 border rounded gap-2">
+            <div class="flex items-center gap-1">
+              <ng-icon [name]="getIcon(activityLog.activityType)" size="26"
+                [color]="getColour(activityLog.activityType)"></ng-icon>
+              <p class="text-lg font-bold">{{ getActivityTypeDisplay(activityLog.activityType) }}</p>
+              @if (getUrl(activityLog.activityType, activityLog.projectId || activityLog.chatId); as url) {
+              <a [routerLink]="'/'+url">
+                <p class="font-bold text-lg text-ocean-500 hover:text-ocean-700 hover:underline cursor-pointer">
+                  {{activityLog.projectName}}
+                </p>
+              </a>
+              } @else {
+              <p class="text-lg font-bold">
+                {{activityLog.projectName}}
+              </p>
+              }
+            </div>
+
+
+            @if (activityLog.activityType === 'update_project' || activityLog.activityType ===
+            'update_project_component') {
+            @if (activityLog.details.field_changes && isArray(activityLog.details.field_changes)) {
+            <div class="mt-2">
+              <p class="text-base font-semibold mb-1">Summary of Changes</p>
+              @for (change of activityLog.details.field_changes; track $index) {
+              @if (!change.field.includes('metadata')) {
+              <div class="flex flex-col bg-slate-100 p-4 rounded gap-1 mb-1">
+                <p class="font-extrabold text-base">Changed {{capitalizeFirstLetter(change.field)}}</p>
+                <p class="font-medium text-base"> {{change.new_value}}</p>
+              </div>
+              }
+              }
+            </div>
+            }
+            }
+
+
+          </div>
+          }
         </div>
       </div>
     </div>

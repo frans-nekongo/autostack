@@ -118,6 +118,14 @@ interface DeleteResponse {
   error?: string;
 }
 
+export interface GitInitialiseResponse{
+  success: boolean
+  git_info: GitInfo
+  message?: string
+  error?: string  
+}
+
+
 @Injectable({
   providedIn: 'root',
 })
@@ -298,6 +306,36 @@ export class ProjectService {
         },
       })
       .pipe(map((result) => result.data!.deleteProject));
+  }
+
+
+  initialiseGit(
+    projectId: string,
+  ): Observable<GitInitialiseResponse> {
+    const INITIALISE_GIT = gql`
+      mutation InitialiseGit($projectId: String!) {
+        initialiseGit(projectId: $projectId) {
+          success
+          gitInfo {
+            latestCommit
+            branch
+            isDirty
+            commits
+          }
+          message
+          error
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ initialiseGit: GitInitialiseResponse }>({
+        mutation: INITIALISE_GIT,
+        variables: {
+          projectId: projectId,
+        },
+      })
+      .pipe(map((result) => result.data!.initialiseGit));
   }
 
   updateProject(

@@ -4,14 +4,15 @@ import { Store } from '@ngrx/store';
 import { ProjectActions } from './project.actions';
 import * as ProjectSelectors from './project.selectors';
 import { ProjectResult } from '../../services/project/project-service';
+import { OperationsFacade } from '../operations/operations.facade';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectFacade {
   private readonly store = inject(Store);
+  private readonly operationsFacade = inject(OperationsFacade);
 
-  // Selectors - Current Project
   currentProjectId$ = this.store.select(
     ProjectSelectors.selectCurrentProjectId
   );
@@ -95,10 +96,26 @@ export class ProjectFacade {
   }
 
   /**
-   * Create a new project from schema
-   * Automatically navigates to /project/:id on success
+   * Create a new project from schema WITH BACKGROUND TRACKING
+   * This uses the new async mutation and tracks progress via subscriptions
+   *
+   * The operation will be tracked in the operations panel and user can
+   * continue working while the project is being created.
    */
   createProject(schema: any, chatId: string): void {
+    // Use the operations facade to create with tracking
+    this.operationsFacade.createProjectWithTracking(schema, chatId);
+  }
+
+  initialiseGit(projectId: string): void {
+    this.store.dispatch(ProjectActions.initialiseRepository({ projectId }))
+  }
+
+  /**
+   * Legacy: Create project synchronously (blocks until complete)
+   * Use createProject() instead for better UX
+   */
+  createProjectSync(schema: any, chatId: string): void {
     this.store.dispatch(ProjectActions.createProject({ schema, chatId }));
   }
 
@@ -132,6 +149,9 @@ export class ProjectFacade {
     return this.store.select(ProjectSelectors.selectProjectById(projectId));
   }
 
+  /**
+   * Update project metadata
+   */
   updateProject(
     projectId: string,
     updates: {

@@ -1,1 +1,13 @@
-<p>version-control-project-settings works!</p>
+<div class="flex flex-col">
+  @if (loading$ | async) {
+    <p>Initializing version control...</p>
+  } @else if (!gitInfo) {
+    <p class="">Version control has not been configured for this project <span
+      class="underline text-ocean-500 font-semibold cursor-pointer" 
+      (click)="onInitialiseGit()">Click here to initialise</span>
+    </p>
+  } @else {
+    <p>Version control is configured</p>
+    <!-- Add your git info display here -->
+  }
+</div>

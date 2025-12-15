@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 from enum import Enum
 import json
 from typing import Optional, Protocol
@@ -26,6 +26,11 @@ class ProjectCreationStatus(Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     
+class ProjectDeletionStatus(Enum):
+    QUEUED = "QUEUED"
+    DELETING_PROJECT = "DELETING_PROJECT"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 @strawberry.type
 class ProjectCreationUpdate:
     operation_id: str
@@ -113,7 +118,7 @@ class RedisOperationStore:
     def __init__(
         self,
         redis_url: str = f'redis://{os.getenv('REDIS_USER')}:{os.getenv('REDIS_PASSWORD')}@{os.getenv('REDIS_HOST')}:6379/0',
-        max_connections: int = 50,
+        max_connections: int = 100,
         operation_ttl: int = 3600  # 1 hour
     ):
         self.redis_url = redis_url
@@ -157,7 +162,7 @@ class RedisOperationStore:
             "message": "Operation queued",
             "project_id": "",
             "error": "",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now().isoformat()
         }
         
         key = f"operation:{operation_id}"

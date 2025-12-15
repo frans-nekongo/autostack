@@ -1,0 +1,93 @@
+<app-side-pane [isOpen]="isOpen" (closeModal)="onClose()" size="lg">
+    <ng-template #header>
+        <div class="flex">
+            <p class="font-medium text-slate-900 m-0">Notifications</p>
+        </div>
+    </ng-template>
+
+    <div class="flex flex-col gap-4 w-full">
+        <div class="operations-section" *ngIf="(activeOperations$ | async)?.length">
+            <h3>Active ({{ (activeOperationsCount$ | async) }})</h3>
+            <div class="operations-list">
+                <div *ngFor="let op of activeOperations$ | async" class="operation-item active"
+                    (click)="viewDetails(op.id)">
+                    <div class="operation-header">
+                        <span class="operation-type">{{ getOperationTypeLabel(op.type) }}</span>
+                        <span class="operation-time">{{ getTimeAgo(op.timestamp) }}</span>
+                    </div>
+                    <div class="operation-message">{{ op.message }}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" [style.width.%]="op.progress"></div>
+                    </div>
+                    <div class="operation-status">
+                        <span class="status-badge" [class]="'status-' + op.status.toLowerCase()">
+                            {{ op.status }}
+                        </span>
+                        <span class="progress-text">{{ op.progress }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Operations -->
+        @if ((completedOperations$ | async)?.length) {
+        <div class="operations-section">
+            <h3>Completed</h3>
+            <div class="operations-list">
+                @for (operation of completedOperations$ | async; track $index) {
+                <div class="operation-item completed" (click)="viewDetails(operation.id)">
+                    <div class="operation-header">
+                        <span class="operation-type">{{ getOperationTypeLabel(operation.type) }}</span>
+                        <span class="operation-time">{{ getTimeAgo(operation.timestamp) }}</span>
+                    </div>
+                    <div class="operation-message">{{ operation.message }}</div>
+                    <div class="operation-actions">
+                        @if (operation.projectId) {
+                        <button (click)="goToProject(operation.projectId, $event)" class="btn-view">
+                            View Project
+                        </button>
+                        <button (click)="removeOperation(operation.id, $event)" class="btn-remove">
+                            Remove
+                        </button>
+
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+        </div>
+
+        }
+
+        <!-- Failed Operations -->
+        @if ((failedOperations$ | async)?.length) {
+        <div class="operations-section">
+            <h3>Failed</h3>
+            <div class="operations-list">
+                @for (operation of failedOperations$ | async; track $index) {
+                <div class="operation-item failed" (click)="viewDetails(operation.id)">
+                    <div class="operation-header">
+                        <span class="operation-type">{{ getOperationTypeLabel(operation.type) }}</span>
+                        <span class="operation-time">{{ getTimeAgo(operation.timestamp) }}</span>
+                    </div>
+                    <div class="operation-message error">{{ operation.error || operation.message }}</div>
+                    <button (click)="removeOperation(operation.id, $event)" class="btn-remove">
+                        Remove
+                    </button>
+                </div>
+
+                }
+            </div>
+        </div>
+
+        }
+
+        <!-- Empty State -->
+        @if (!(recentOperations$ | async)?.length) {
+        <div class="empty-state">
+            <p>No operations yet</p>
+        </div>
+
+        }
+    </div>
+</app-side-pane>

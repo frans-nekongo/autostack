@@ -1,14 +1,12 @@
-import { Injectable } from "@angular/core";
-import { ProjectEffects } from "../project/project.effects";
-import { ChatEffects } from "../chat/chat.effects";
+import { Injectable } from '@angular/core';
+import { ProjectEffects } from '../project/project.effects';
+import { ChatEffects } from '../chat/chat.effects';
+import { LogEffects } from '../logs/logs.effects';
 
 @Injectable()
 export class AppEffects {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    constructor() {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  constructor() {}
 }
 
-export const appEffects = [
-    ProjectEffects,
-    ChatEffects
-]
+export const appEffects = [ProjectEffects, ChatEffects, LogEffects];

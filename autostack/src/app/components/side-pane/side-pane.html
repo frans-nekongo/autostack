@@ -1,0 +1,63 @@
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<!-- side-modal.component.html -->
+@if (isOpen) {
+  <!-- Backdrop -->
+  <div 
+    class="w-full h-full fixed inset-0 bg-white-900 bg-opacity-50 z-40 animate-fade-in"
+    (click)="onBackdropClick()">
+  </div>
+  
+  <!-- Modal Container -->
+  <div class="fixed inset-0 w-full h-full pointer-events-none z-50">
+    <div 
+        class="bg-white-900"
+      [class]="modalClasses"
+      [style]="customWidthStyle"
+      (click)="onModalClick($event)">
+      
+      <!-- Header Section -->
+      <div class="flex justify-between items-center w-full">
+        <div class="flex-1">
+          @if (headerTemplate) {
+            <ng-container *ngTemplateOutlet="headerTemplate"></ng-container>
+          } @else if (title) {
+            <h2 class="text-lg font-semibold m-0">{{ title }}</h2>
+          }
+        </div>
+        
+        @if (showCloseButton) {
+          <button 
+            type="button"
+            class="ml-4 p-1 rounded-md hover:bg-gray-100 transition-colors duration-200"
+            (click)="onClose()"
+            aria-label="Close modal">
+            <ng-icon name="heroXMark" class="w-5 h-5"></ng-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Divider (only show if header exists) -->
+      @if (headerTemplate || title) {
+        <hr class="w-full" />
+      }
+      
+      <!-- Body Section -->
+      <div class="flex-1 w-full overflow-y-auto">
+        @if (bodyTemplate) {
+          <ng-container *ngTemplateOutlet="bodyTemplate"></ng-container>
+        } @else {
+          <ng-content></ng-content>
+        }
+      </div>
+      
+      <!-- Footer Section -->
+      @if (footerTemplate) {
+        <hr class="w-full" />
+        <div class="w-full">
+          <ng-container *ngTemplateOutlet="footerTemplate"></ng-container>
+        </div>
+      }
+    </div>
+  </div>
+}

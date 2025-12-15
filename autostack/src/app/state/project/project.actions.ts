@@ -2,6 +2,7 @@ import { props, createActionGroup, emptyProps } from '@ngrx/store';
 import {
   ProjectResult,
   ProjectArchitecture,
+  GitInfo,
 } from '../../services/project/project-service';
 
 export const ProjectActions = createActionGroup({
@@ -28,6 +29,10 @@ export const ProjectActions = createActionGroup({
     'Create Project': props<{ schema: any; chatId: string }>(),
     'Create Project Success': props<{ projectId: string; message: string }>(),
     'Create Project Failure': props<{ error: string }>(),
+
+    'Initialise Repository': props<{projectId: string}>(),
+    'Initialise Repository Success': props<{projectId: string, gitInfo: GitInfo}>(),
+    'Initialise Repository Failure': props<{error: string}>(),
 
     // Set Current Project (for navigation/selection)
     'Set Current Project': props<{ projectId: string }>(),

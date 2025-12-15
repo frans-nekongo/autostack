@@ -8,10 +8,11 @@ import { filter, map, Observable, of, switchMap } from 'rxjs';
 import { ProjectFacade } from '../../state/project/project.facade';
 import { ChatFacade } from '../../state/chat/chat.facade';
 import { CommonModule } from '@angular/common';
+import { NotificationsPane } from '../notifications-pane/notifications-pane';
 
 @Component({
   selector: 'app-header',
-  imports: [Logo, NgIcon, CommonModule],
+  imports: [Logo, NgIcon, CommonModule, NotificationsPane],
   templateUrl: './header.html',
   styleUrl: './header.scss',
   providers: [provideIcons({ saxNotificationBold, heroSparklesSolid })],
@@ -24,43 +25,55 @@ export class Header implements OnInit {
 
   colour = '#F8F8F8';
   pageTitle$!: Observable<string>;
+  modalOpen = false;
 
   ngOnInit() {
-  this.pageTitle$ = this.router.events.pipe(
-    filter((event) => event instanceof NavigationEnd),
-    map(() => {
-      let route = this.route;
-      while (route.firstChild) {
-        route = route.firstChild;
-      }
-      return route;
-    }),
-    switchMap((route) => {
-      const staticTitle = route.snapshot.data['title'] || '';
-      const routePath = route.snapshot.routeConfig?.path || '';
-      
-      // Check if we're on a chat detail page
-      if (routePath === ':chatid') {
-        return this.chatFacade.currentChat$.pipe(
-          map((chat) => chat?.chatTitle || 'Chat')
-        );
-      }
-      
-      // Check if we're on a project page or any of its descendants
-      // Traverse up the route tree to find the project route
-      let currentRoute = route;
-      while (currentRoute.parent) {
-        if (currentRoute.parent.snapshot.routeConfig?.path === 'project/:projectId') {
-          return this.projectFacade.currentProject$.pipe(
-            map((project) => project?.name || 'Project')
+    this.pageTitle$ = this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => {
+        let route = this.route;
+        while (route.firstChild) {
+          route = route.firstChild;
+        }
+        return route;
+      }),
+      switchMap((route) => {
+        const staticTitle = route.snapshot.data['title'] || '';
+        const routePath = route.snapshot.routeConfig?.path || '';
+
+        // Check if we're on a chat detail page
+        if (routePath === ':chatid') {
+          return this.chatFacade.currentChat$.pipe(
+            map((chat) => chat?.chatTitle || 'Chat')
           );
         }
-        currentRoute = currentRoute.parent;
-      }
-      
-      // Return static title for other routes
-      return of(staticTitle);
-    })
-  );
-}
+
+        // Check if we're on a project page or any of its descendants
+        // Traverse up the route tree to find the project route
+        let currentRoute = route;
+        while (currentRoute.parent) {
+          if (
+            currentRoute.parent.snapshot.routeConfig?.path ===
+            'project/:projectId'
+          ) {
+            return this.projectFacade.currentProject$.pipe(
+              map((project) => project?.name || 'Project')
+            );
+          }
+          currentRoute = currentRoute.parent;
+        }
+
+        // Return static title for other routes
+        return of(staticTitle);
+      })
+    );
+  }
+
+  closeModal(): void {
+    this.modalOpen = false;
+  }
+
+  showModal() {
+    this.modalOpen = true;
+  }
 }

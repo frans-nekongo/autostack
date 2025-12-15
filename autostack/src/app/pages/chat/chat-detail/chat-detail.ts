@@ -31,6 +31,8 @@ import {
   ProjectCreatedResponse,
   ProjectService,
 } from '../../../services/project/project-service';
+import { ProjectFacade } from '../../../state/project/project.facade';
+import { OperationsFacade } from '../../../state/operations/operations.facade';
 
 @Component({
   selector: 'app-chat-detail',
@@ -64,6 +66,8 @@ import {
 })
 export class ChatDetail implements OnInit, OnDestroy {
   private chatFacade = inject(ChatFacade);
+  private projectFacade = inject(ProjectFacade);
+  private operationsFacade = inject(OperationsFacade);
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectService);
@@ -72,6 +76,8 @@ export class ChatDetail implements OnInit, OnDestroy {
   currentChat$ = this.chatFacade.currentChat$;
   loading$ = this.chatFacade.loading$;
   error$ = this.chatFacade.error$;
+  activeOperationsCount$ = this.operationsFacade.activeOperationsCount$;
+  isCreating = false;
 
   generationResult$!: Observable<ProjectCreatedResponse | null>;
   errorMessage$!: Observable<string | null>;
@@ -81,9 +87,11 @@ export class ChatDetail implements OnInit, OnDestroy {
   private errorMessageSubject = new BehaviorSubject<string | null>(null);
   private isGeneratingSubject = new BehaviorSubject<boolean>(false);
 
-  isLoadingCreation = false
+  isLoadingCreation = false;
+  projectCreateMessage!: string;
+
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe((params) => {
       const chatId = params['chatid'];
       if (chatId) {
         this.chatFacade.loadChat(chatId);
@@ -169,29 +177,10 @@ export class ChatDetail implements OnInit, OnDestroy {
             return;
           }
 
-          console.log(chat.id)
-
-          // Call the project service
-          this.projectService
-            .createFullProject(chat.initialSchema, chat.id)
-            .subscribe({
-              next: (result) => {
-                this.generationResultSubject.next(result);
-                this.isGeneratingSubject.next(false);
-
-                // Optional: Show success notification
-                if (result.success) {
-                  // You could also navigate to the project page
-                  this.router.navigate(['/projects', result.projectId]);
-                }
-              },
-              error: (error) => {
-                this.errorMessageSubject.next(
-                  'Failed to create project: ' + error.message
-                );
-                this.isGeneratingSubject.next(false);
-              },
-            });
+          this.projectFacade.createProject(chat.initialSchema, chat.id);
+          this.showSuccessMessage(
+            'Project creation started! Check notifications for progress.'
+          );
         } catch (error) {
           this.errorMessageSubject.next(
             'Error processing schema: ' + (error as Error).message
@@ -204,5 +193,9 @@ export class ChatDetail implements OnInit, OnDestroy {
         this.isGeneratingSubject.next(false);
       },
     });
+  }
+
+  private showSuccessMessage(message: string): void {
+    this.projectCreateMessage = message;
   }
 }

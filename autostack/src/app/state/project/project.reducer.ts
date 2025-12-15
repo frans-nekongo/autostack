@@ -155,6 +155,30 @@ const reducer = createReducer(
     error,
   })),
 
+  on(ProjectActions.initialiseRepository, (state) => ({
+    ...state,
+    loading: true,
+    error: null,
+  })),
+  on(
+    ProjectActions.initialiseRepositorySuccess,
+    (state, { projectId, gitInfo }) => ({
+      ...state,
+      currentProject:
+        state.currentProject?.id === projectId
+          ? { ...state.currentProject, gitInfo }
+          : state.currentProject,
+      projects: state.projects.map((project) =>
+        project.id === projectId ? { ...project, gitInfo } : project
+      ),
+    })
+  ),
+  on(ProjectActions.initialiseRepositoryFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error,
+  })),
+
   // Reset State
   on(ProjectActions.resetProjectState, () => initialProjectState)
 );

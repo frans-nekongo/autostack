@@ -53,6 +53,8 @@ class ProjectArchitectureResponse:
     error: Optional[str] = None
     message: Optional[str] = None
     
+
+    
     
 def get_git_info(directory: Optional[str]) -> Optional[GitInfo]:
     """Get Git repository information safely."""
@@ -62,10 +64,8 @@ def get_git_info(directory: Optional[str]) -> Optional[GitInfo]:
     try:
         repository = git.Repo(directory)
         
-        # Get commits (limited to recent ones for performance)
         commits = []
         try:
-            # Limit to 10 most recent commits to avoid performance issues
             for commit in repository.iter_commits(max_count=10):
                 commits.append(commit.hexsha)
         except Exception as commit_error:
@@ -135,7 +135,6 @@ class ProjectQuery:
             service = ProjectService()
             result = await service.list_projects()
             
-            # Handle both return types - direct list or (success, error) tuple
             if isinstance(result, tuple) and len(result) == 2:
                 success, projects_or_error = result
                 if success:
@@ -144,7 +143,6 @@ class ProjectQuery:
                     logger.error(f"Error listing projects: {projects_or_error}")
                     return []
             else:
-                # Assume result is directly the list of projects
                 projects = result
             
             if projects:
@@ -232,4 +230,6 @@ class ProjectQuery:
                 message="Failed to fetch project architecture"
             )
             
+    
+    
         

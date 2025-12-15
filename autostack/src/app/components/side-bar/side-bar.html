@@ -4,9 +4,9 @@
 
         <div class="flex items-center gap-10 mb-6">
             <a href="/projects">
-                <p class="font-bold">Projects</p>
+                <p class="font-bold">Projects </p>
             </a>
-            <a class="flex items-center bg-ocean-500 py-1 px-2 rounded gap-2" href="/create-project">
+            <a class="flex items-center bg-ocean-500 py-1 px-2 rounded gap-2" href="/chat">
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clip-path="url(#clip0_55_314)">
                         <path fill-rule="evenodd" clip-rule="evenodd"
@@ -31,12 +31,17 @@
             } @else if (error$ | async) {
             <p>{{error$ | async}}</p>
             } @else {
+            @if (((projectsCount$ | async) ?? 0) > 0) {
             @for (project of projects$ | async; track $index) {
             <div class="flex items-center gap-1 cursor-pointer" (click)="onSelectProject(project)">
-                <img [src]="project.avatarDataUrl" width="25" class="border rounded p-1"/>
+                <img [src]="project.avatarDataUrl" width="25" class="border rounded p-1" />
                 <p class="text-sm  text-slate-700">{{project.name}}</p>
             </div>
-            }}
+            }
+            } @else {
+                <p>No projects created</p>
+            }
+            }
         </div>
     </div>
 </nav>

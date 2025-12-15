@@ -6,6 +6,8 @@ import { projectReducer } from './project/project.reducer';
 import { ProjectEffects } from './project/project.effects';
 import { ChatEffects } from './chat/chat.effects';
 import { chatReducer } from './chat/chat.reducer';
+import { logsReducer } from './logs/logs.reducer';
+import { LogEffects } from './logs/logs.effects';
 
 @NgModule()
 export class SharedStateModule {
@@ -20,11 +22,13 @@ export class SharedStateModule {
 export const stateConfig = {
   reducers: {
     project: projectReducer,
-    chat: chatReducer
+    chat: chatReducer,
+    log: logsReducer
   },
   effects: [
     ProjectEffects,
-    ChatEffects
+    ChatEffects,
+    LogEffects
   ]
 };
 

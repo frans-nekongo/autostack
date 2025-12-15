@@ -134,6 +134,42 @@ export class ProjectEffects {
     )
   );
 
+  initialiseGit$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.initialiseRepository),
+      switchMap(({ projectId }) =>
+        this.projectService.initialiseGit(projectId).pipe(
+          map((result) => {
+            if (result.success && result.git_info) {
+              return ProjectActions.initialiseRepositorySuccess({
+                projectId,
+                gitInfo: result.git_info,
+              });
+            } else {
+              return ProjectActions.initialiseRepositoryFailure({
+                error: result.error || 'Failed to initialise repository',
+              });
+            }
+          }),
+          catchError((error) =>
+            of(
+              ProjectActions.initialiseRepositoryFailure({
+                error: error.message || 'Failed to initialise repository',
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+
+  reloadProjectAfterGitInit$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.initialiseRepositorySuccess),
+      map(({ projectId }) => ProjectActions.loadProject({ projectId }))
+    )
+  );
+
   updateProject$ = createEffect(() =>
     this.actions$.pipe(
       ofType(ProjectActions.updateProject),
@@ -165,15 +201,14 @@ export class ProjectEffects {
     )
   );
 
-  navigateAfterUpdate$ = createEffect(
-    () => 
-      this.actions$.pipe(
-        ofType(ProjectActions.updateProjectSuccess),
-        tap(({ projectId }) => {
-          this.router.navigate(['/project', projectId])
-        })
-      )
-  )
+  navigateAfterUpdate$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.updateProjectSuccess),
+      tap(({ projectId }) => {
+        this.router.navigate(['/project', projectId]);
+      })
+    )
+  );
 
   // Navigate to project page after successful creation
   navigateAfterCreate$ = createEffect(

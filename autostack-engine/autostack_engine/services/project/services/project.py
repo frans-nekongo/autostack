@@ -262,7 +262,7 @@ class ProjectService(BaseService):
             # Delete from database
             await project.delete()
             activity = ActivityLog(
-                activity_type=ActivityType.DELETE_CHAT,
+                activity_type=ActivityType.DELETE_PROJECT,
                 project_id=project_id,
                 project_name=project.name
             )

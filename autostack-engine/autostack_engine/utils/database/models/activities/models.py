@@ -98,7 +98,6 @@ class ActivityLog(Document):
             IndexModel([("created_at", -1)]),
             IndexModel([("project_id", 1)]),
             IndexModel([("chat_id", 1)]),
-            IndexModel([("project_id", 1), ("created_at", -1)]),  # Project activity history
         ]
     
     def __repr__(self) -> str:
