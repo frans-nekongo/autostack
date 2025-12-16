@@ -30,7 +30,7 @@ export const routes: Routes = [
         {path: '', 'redirectTo': 'overview', pathMatch: 'full'},
         {path: 'overview', component: Overview},
         {path: 'production', component: Production},
-        {path: 'development', component: Development},
+        {path: 'components', component: Development},
         {path: 'settings', component: ProjectSettings, children: [
             {path: '', redirectTo: 'general', pathMatch: 'full'},
             {path: 'general', component: GeneralProjectSettings},

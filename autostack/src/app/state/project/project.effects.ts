@@ -231,4 +231,33 @@ export class ProjectEffects {
       )
     )
   );
+
+  deleteComponent$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.deleteComponent),
+      switchMap(({ componentId }) =>
+        this.projectService.deleteComponent(componentId).pipe(
+          map((result) => {
+            if (result.success) {
+              return ProjectActions.deleteComponentSuccess();
+            } else {
+              return ProjectActions.deleteComponentFailure({
+                error: result.error || 'Failed to delete component',
+              });
+            }
+          }),
+          catchError((error) =>
+            of(
+              ProjectActions.deleteComponentFailure({
+                error:
+                  error.message || 'An error occurred while creating project',
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+
+
 }

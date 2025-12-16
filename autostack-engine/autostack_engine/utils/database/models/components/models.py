@@ -58,8 +58,8 @@ class Component(Document):
     directory: Optional[str] = None  # Relative path from project root
     
     # Audit fields
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     
     class Settings:
         name = "components"

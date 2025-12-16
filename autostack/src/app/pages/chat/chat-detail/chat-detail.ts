@@ -5,6 +5,7 @@ import { ChatFacade } from '../../../state/chat/chat.facade';
 import { BehaviorSubject, Observable, Subject, take, takeUntil } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   diAngularOriginal,
   diApachekafkaOriginal,
@@ -34,9 +35,39 @@ import {
 import { ProjectFacade } from '../../../state/project/project.facade';
 import { OperationsFacade } from '../../../state/operations/operations.facade';
 
+interface ProjectSchema {
+  project: {
+    name: string;
+    author: string;
+    description: string;
+    version: string;
+  };
+  technologies: Array<{
+    name: string;
+    type: string;
+    version: string;
+  }>;
+  components: Array<{
+    component_id: string;
+    name: string;
+    technology: string;
+    framework: string;
+    port: number;
+    type: string;
+    environment_variables: any;
+    dependencies?: any[];
+  }>;
+  connections: Array<{
+    source: string;
+    target: string;
+    type: string;
+    port: number;
+  }>;
+}
+
 @Component({
   selector: 'app-chat-detail',
-  imports: [CommonModule, NgIcon],
+  imports: [CommonModule, NgIcon, FormsModule],
   templateUrl: './chat-detail.html',
   styleUrl: './chat-detail.scss',
   providers: [
@@ -90,11 +121,30 @@ export class ChatDetail implements OnInit, OnDestroy {
   isLoadingCreation = false;
   projectCreateMessage!: string;
 
+  // Edit mode properties
+  isEditMode = false;
+  editSection: 'project' | 'components' | 'connections' = 'project';
+  editedSchema!: ProjectSchema;
+
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const chatId = params['chatid'];
       if (chatId) {
+        // Reset edit mode and schema when navigating to a new chat
+        this.isEditMode = false;
+        this.editSection = 'project';
+        this.editedSchema = null as any;
+        this.projectCreateMessage = '';
+        
         this.chatFacade.loadChat(chatId);
+      }
+    });
+
+    // Initialize editedSchema when chat loads
+    this.currentChat$.pipe(takeUntil(this.destroy$)).subscribe((chat) => {
+      if (chat?.initialSchema) {
+        // Always create a fresh copy when chat changes
+        this.editedSchema = JSON.parse(JSON.stringify(chat.initialSchema));
       }
     });
   }
@@ -139,8 +189,63 @@ export class ChatDetail implements OnInit, OnDestroy {
       none: '',
     };
 
-    // Convert to lowercase to handle case variations and return the icon name
     return iconMap[framework.toLowerCase()] || '';
+  }
+
+  onEditSchema(): void {
+    if (this.isEditMode) {
+      // Cancel edit - reload original schema
+      this.currentChat$.pipe(take(1)).subscribe((chat) => {
+        if (chat?.initialSchema) {
+          this.editedSchema = JSON.parse(JSON.stringify(chat.initialSchema));
+        }
+      });
+      this.isEditMode = false;
+      this.editSection = 'project';
+    } else {
+      // Enter edit mode
+      this.isEditMode = true;
+      this.editSection = 'project';
+    }
+  }
+
+  saveSection(): void {
+    // Exit edit mode for this section, showing the buttons again
+    this.isEditMode = false;
+  }
+
+  addComponent(): void {
+    const newComponent = {
+      component_id: `component-${Date.now()}`,
+      name: 'New Component',
+      technology: 'nodejs',
+      framework: 'none',
+      port: 8000,
+      type: 'api',
+      environment_variables: {},
+      dependencies: [],
+    };
+    this.editedSchema.components.push(newComponent);
+  }
+
+  removeComponent(index: number): void {
+    this.editedSchema.components.splice(index, 1);
+  }
+
+  addConnection(): void {
+    if (this.editedSchema.components.length >= 2) {
+      const newConnection = {
+        source: this.editedSchema.components[0].component_id,
+        target: this.editedSchema.components[1].component_id,
+        type: 'api-call',
+        port: this.editedSchema.components[1].port,
+      };
+      this.editedSchema.connections.push(newConnection);
+    }
+  }
+
+  removeConnection(index: number): void {
+    this.editedSchema.connections.splice(index, 1);
   }
 
   onGenerateProject(): void {
@@ -156,8 +261,11 @@ export class ChatDetail implements OnInit, OnDestroy {
           return;
         }
 
-        if (!chat.initialSchema) {
-          this.errorMessageSubject.next('No schema found in the chat');
+        // Use editedSchema instead of initialSchema
+        const schemaToUse = this.editedSchema;
+
+        if (!schemaToUse) {
+          this.errorMessageSubject.next('No schema found');
           this.isGeneratingSubject.next(false);
           return;
         }
@@ -165,10 +273,10 @@ export class ChatDetail implements OnInit, OnDestroy {
         try {
           // Validate the schema has required fields
           if (
-            !chat.initialSchema.project ||
-            !chat.initialSchema.project.name ||
-            !chat.initialSchema.project.author ||
-            !chat.initialSchema.project.description
+            !schemaToUse.project ||
+            !schemaToUse.project.name ||
+            !schemaToUse.project.author ||
+            !schemaToUse.project.description
           ) {
             this.errorMessageSubject.next(
               'Invalid schema: Missing required project information'
@@ -177,7 +285,7 @@ export class ChatDetail implements OnInit, OnDestroy {
             return;
           }
 
-          this.projectFacade.createProject(chat.initialSchema, chat.id);
+          this.projectFacade.createProject(schemaToUse, chat.id);
           this.showSuccessMessage(
             'Project creation started! Check notifications for progress.'
           );
@@ -197,5 +305,62 @@ export class ChatDetail implements OnInit, OnDestroy {
 
   private showSuccessMessage(message: string): void {
     this.projectCreateMessage = message;
+  }
+
+  getAvailableFrameworks(technology: string): Array<{ value: string; label: string }> {
+    const frameworkMap: { [key: string]: Array<{ value: string; label: string }> } = {
+      nodejs: [
+        { value: 'none', label: 'None' },
+        { value: 'express', label: 'Express' },
+        { value: 'nestjs', label: 'NestJS' },
+        { value: 'react', label: 'React' },
+        { value: 'nextjs', label: 'Next.js' },
+        { value: 'angular', label: 'Angular' },
+        { value: 'vue', label: 'Vue' },
+        { value: 'svelte', label: 'Svelte' },
+      ],
+      python: [
+        { value: 'none', label: 'None' },
+        { value: 'django', label: 'Django' },
+        { value: 'flask', label: 'Flask' },
+        { value: 'fastapi', label: 'FastAPI' },
+      ],
+      java: [
+        { value: 'none', label: 'None' },
+      ],
+      go: [
+        { value: 'none', label: 'None' },
+      ],
+      postgresql: [
+        { value: 'none', label: 'None' },
+      ],
+      mysql: [
+        { value: 'none', label: 'None' },
+      ],
+      mongodb: [
+        { value: 'none', label: 'None' },
+      ],
+      sqlite: [
+        { value: 'none', label: 'None' },
+      ],
+      redis: [
+        { value: 'none', label: 'None' },
+      ],
+      kafka: [
+        { value: 'none', label: 'None' },
+      ],
+    };
+
+    return frameworkMap[technology.toLowerCase()] || [{ value: 'none', label: 'None' }];
+  }
+
+  onTechnologyChange(component: any): void {
+    // Reset framework to 'none' when technology changes
+    const availableFrameworks = this.getAvailableFrameworks(component.technology);
+    // Check if current framework is still valid for the new technology
+    const isFrameworkValid = availableFrameworks.some(f => f.value === component.framework);
+    if (!isFrameworkValid) {
+      component.framework = 'none';
+    }
   }
 }

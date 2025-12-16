@@ -10,80 +10,365 @@
 
     <div class="flex flex-col gap-3 mt-10">
       <div class="flex justify-between">
-        <p class="text-xl">Generated Schema</p>
-        <button class="flex items-center bg-ocean-500 py-1 px-2 rounded" (click)="onGenerateProject()">
-          <p class="text-sm text-white-900">Generate Project</p>
-        </button>
+        <p class="text-xl">Initial Generated Schema</p>
+        <div class="flex gap-3">
+          <button 
+            class="flex items-center bg-green-500 py-1 px-2 rounded"
+            (click)="onEditSchema()">
+            <p class="text-sm text-white-900">{{ isEditMode ? 'Cancel Edit' : 'Edit Schema' }}</p>
+          </button>
+
+          <button 
+            class="flex items-center bg-ocean-500 py-1 px-2 rounded" 
+            (click)="onGenerateProject()"
+            [disabled]="isEditMode">
+            <p class="text-sm text-white-900">Generate Project</p>
+          </button>
+        </div>
       </div>
+
       @if ((currentChat$ | async)?.initialSchema.project) {
       <div class="flex flex-col gap-4">
 
-        <p class="text-lg">Project Details</p>
+        <!-- Edit Mode Navigation -->
+        @if (isEditMode) {
+        <div class="flex gap-3 mt-4">
+          <button 
+            class="px-4 py-2 rounded border"
+            [class.bg-ocean-500]="editSection === 'project'"
+            [class.text-white-900]="editSection === 'project'"
+            [class.border-ocean-500]="editSection === 'project'"
+            [class.bg-white-900]="editSection !== 'project'"
+            [class.text-ocean-500]="editSection !== 'project'"
+            [class.border-ocean-300]="editSection !== 'project'"
+            (click)="editSection = 'project'">
+            <p class="text-sm">Project Details</p>
+          </button>
+          <button 
+            class="px-4 py-2 rounded border"
+            [class.bg-ocean-500]="editSection === 'components'"
+            [class.text-white-900]="editSection === 'components'"
+            [class.border-ocean-500]="editSection === 'components'"
+            [class.bg-white-900]="editSection !== 'components'"
+            [class.text-ocean-500]="editSection !== 'components'"
+            [class.border-ocean-300]="editSection !== 'components'"
+            (click)="editSection = 'components'">
+            <p class="text-sm">Components</p>
+          </button>
+          <button 
+            class="px-4 py-2 rounded border"
+            [class.bg-ocean-500]="editSection === 'connections'"
+            [class.text-white-900]="editSection === 'connections'"
+            [class.border-ocean-500]="editSection === 'connections'"
+            [class.bg-white-900]="editSection !== 'connections'"
+            [class.text-ocean-500]="editSection !== 'connections'"
+            [class.border-ocean-300]="editSection !== 'connections'"
+            (click)="editSection = 'connections'">
+            <p class="text-sm">Connections</p>
+          </button>
+        </div>
+        }
 
-        <table>
-          <thead>
-            <tr>
-              <th class="py-2 border-b border-ocean-300 bg-ocean-100 rounded-t-lg" colspan="2">
-                <p class="block text-sm antialiased leading-normal text-slate-900">Project Details</p>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="rounded-b-lg">
-            <tr class="even:bg-ocean-50/50">
-              <td class="p-2">
-                <p class="block text-sm antialiased leading-normal text-slate-500">Name</p>
-              </td>
-              <td class="p-2">
-                <p class="block text-sm antialiased leading-normal text-slate-500">{{ (currentChat$ |
-                  async)?.initialSchema.project.name }}</p>
-              </td>
-            </tr>
-            <tr class="even:bg-ocean-50/50">
-              <td class="p-2">
-                <p class="block text-sm antialiased leading-normal text-slate-500">Description</p>
-              </td>
-              <td class="p-2">
-                <p class="block text-sm antialiased leading-normal text-slate-500">{{ (currentChat$ |
-                  async)?.initialSchema.project.description }}</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Project Details Section -->
+        @if (!isEditMode || editSection === 'project') {
+        <div class="flex flex-col gap-4">
+          <p class="text-lg">Project Details</p>
 
-        <p class="text-lg mt-4">Components</p>
+          @if (isEditMode && editSection === 'project') {
+          <!-- Edit Mode -->
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1">
+              <label class="text-slate-700">Name</label>
+              <input 
+                [(ngModel)]="editedSchema.project.name"
+                class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+            </div>
 
-        <div class="flex gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-slate-700">Author</label>
+              <input 
+                [(ngModel)]="editedSchema.project.author"
+                class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+            </div>
 
-          @for (item of (currentChat$ | async)?.initialSchema.components; track $index) {
+            <div class="flex flex-col gap-1">
+              <label class="text-slate-700">Version</label>
+              <input 
+                [(ngModel)]="editedSchema.project.version"
+                class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+            </div>
 
-          <div class="flex items-center gap-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-slate-700">Description</label>
+              <textarea 
+                rows="4" 
+                [(ngModel)]="editedSchema.project.description"
+                class="text-slate-500 focus:text-slate-700 min-h-[50px] max-h-[120px] border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10 resize-none">
+              </textarea>
+            </div>
 
-            @if (item.framework.toLowerCase() !== 'none') {
-            <ng-icon [name]="getIcon(item.framework)" class=" text-slate-500" size="30"></ng-icon>
-            } @else if (item.technology.toLowerCase() !== 'none') {
-            <ng-icon [name]="getIcon(item.technology)" class=" text-slate-500" size="30"></ng-icon>
+            <button 
+              class="flex items-center justify-center bg-ocean-500 py-2 px-4 rounded max-w-[120px]"
+              (click)="saveSection()">
+              <p class="text-sm text-white-900">Save</p>
+            </button>
+          </div>
+          } @else {
+          <!-- View Mode -->
+          <table>
+            <thead>
+              <tr>
+                <th class="py-2 border-b border-ocean-300 bg-ocean-100 rounded-t-lg" colspan="2">
+                  <p class="block text-sm antialiased leading-normal text-slate-900">Project Details</p>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="rounded-b-lg">
+              <tr class="even:bg-ocean-50/50">
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">Name</p>
+                </td>
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">{{ editedSchema.project.name }}</p>
+                </td>
+              </tr>
+              <tr class="even:bg-ocean-50/50">
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">Author</p>
+                </td>
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">{{ editedSchema.project.author }}</p>
+                </td>
+              </tr>
+              <tr class="even:bg-ocean-50/50">
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">Version</p>
+                </td>
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">{{ editedSchema.project.version }}</p>
+                </td>
+              </tr>
+              <tr class="even:bg-ocean-50/50">
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">Description</p>
+                </td>
+                <td class="p-2">
+                  <p class="block text-sm antialiased leading-normal text-slate-500">{{ editedSchema.project.description }}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          }
+        </div>
+        }
+
+        <!-- Components Section -->
+        @if (!isEditMode || editSection === 'components') {
+        <div class="flex flex-col gap-4">
+          <p class="text-lg mt-4">Components</p>
+
+          @if (isEditMode && editSection === 'components') {
+          <!-- Edit Mode -->
+          <div class="flex flex-col gap-4">
+            @for (component of editedSchema.components; track $index) {
+            <div class="border border-ocean-300 rounded p-4 flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <p class="font-semibold text-slate-700">Component {{ $index + 1 }}</p>
+                <button 
+                  class="text-red-500 text-sm"
+                  (click)="removeComponent($index)">
+                  Remove
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Name</label>
+                  <input 
+                    [(ngModel)]="component.name"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Component ID</label>
+                  <input 
+                    [(ngModel)]="component.component_id"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Technology</label>
+                  <select 
+                    [(ngModel)]="component.technology"
+                    (ngModelChange)="onTechnologyChange(component)"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    <option value="nodejs">Node.js</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="go">Go</option>
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="mysql">MySQL</option>
+                    <option value="mongodb">MongoDB</option>
+                    <option value="sqlite">SQLite</option>
+                    <option value="redis">Redis</option>
+                    <option value="kafka">Kafka</option>
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Framework</label>
+                  <select 
+                    [(ngModel)]="component.framework"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    @for (fw of getAvailableFrameworks(component.technology); track fw.value) {
+                    <option [value]="fw.value">{{ fw.label }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Type</label>
+                  <select 
+                    [(ngModel)]="component.type"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    <option value="web">Web</option>
+                    <option value="api">API</option>
+                    <option value="database">Database</option>
+                    <option value="database">Gateway</option>
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Port</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="component.port"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+                </div>
+              </div>
+            </div>
             }
-            <p class="text-lg">{{item.name}}</p>
-          </div>
 
+            <button 
+              class="flex items-center justify-center bg-green-500 py-2 px-4 rounded max-w-[180px]"
+              (click)="addComponent()">
+              <p class="text-sm text-white-900">Add Component</p>
+            </button>
+
+            <button 
+              class="flex items-center justify-center bg-ocean-500 py-2 px-4 rounded max-w-[120px]"
+              (click)="saveSection()">
+              <p class="text-sm text-white-900">Save</p>
+            </button>
+          </div>
+          } @else {
+          <!-- View Mode -->
+          <div class="flex flex-wrap gap-3">
+            @for (item of editedSchema.components; track $index) {
+            <div class="flex items-center gap-2 w-auto">
+              @if (item.framework.toLowerCase() !== 'none') {
+              <ng-icon [name]="getIcon(item.framework)" class=" text-slate-500" size="30"></ng-icon>
+              } @else if (item.technology.toLowerCase() !== 'none') {
+              <ng-icon [name]="getIcon(item.technology)" class=" text-slate-500" size="30"></ng-icon>
+              }
+              <p class="text-lg">{{item.name}}</p>
+            </div>
+            }
+          </div>
           }
         </div>
+        }
 
-        <p class="text-lg mt-4">Connections</p>
+        <!-- Connections Section -->
+        @if (!isEditMode || editSection === 'connections') {
+        <div class="flex flex-col gap-4">
+          <p class="text-lg mt-4">Connections</p>
 
-        <div class="flex gap-3">
+          @if (isEditMode && editSection === 'connections') {
+          <!-- Edit Mode -->
+          <div class="flex flex-col gap-4">
+            @for (connection of editedSchema.connections; track $index) {
+            <div class="border border-ocean-300 rounded p-4 flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <p class="font-semibold text-slate-700">Connection {{ $index + 1 }}</p>
+                <button 
+                  class="text-red-500 text-sm"
+                  (click)="removeConnection($index)">
+                  Remove
+                </button>
+              </div>
 
-          @for (item of (currentChat$ | async)?.initialSchema.connections; track $index) {
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Source</label>
+                  <select 
+                    [(ngModel)]="connection.source"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    @for (comp of editedSchema.components; track comp.component_id) {
+                    <option [value]="comp.component_id">{{ comp.name }}</option>
+                    }
+                  </select>
+                </div>
 
-          <div class="flex items-center gap-2">
-            <p>{{item.source}} -> {{item.target}}</p>
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Target</label>
+                  <select 
+                    [(ngModel)]="connection.target"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    @for (comp of editedSchema.components; track comp.component_id) {
+                    <option [value]="comp.component_id">{{ comp.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Type</label>
+                  <select 
+                    [(ngModel)]="connection.type"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10">
+                    <option value="api-call">API Call</option>
+                    <option value="database">Database</option>
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-slate-700">Port</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="connection.port"
+                    class="text-slate-500 focus:text-slate-700 border-ocean-400 border rounded border-opacity-50 text-sm py-1 px-2 focus:border-opacity-100 focus:outline-none focus:bg-white-50 bg-ocean-300 bg-opacity-10" />
+                </div>
+              </div>
+            </div>
+            }
+
+            <button 
+              class="flex items-center justify-center bg-green-500 py-2 px-4 rounded max-w-[180px]"
+              (click)="addConnection()">
+              <p class="text-sm text-white-900">Add Connection</p>
+            </button>
+
+            <button 
+              class="flex items-center justify-center bg-ocean-500 py-2 px-4 rounded max-w-[120px]"
+              (click)="saveSection()">
+              <p class="text-sm text-white-900">Save</p>
+            </button>
           </div>
-
+          } @else {
+          <!-- View Mode -->
+          <div class="flex flex-wrap gap-3">
+            @for (item of editedSchema.connections; track $index) {
+            <div class="flex items-center gap-2 w-auto">
+              <p>{{item.source}} -> {{item.target}}</p>
+            </div>
+            }
+          </div>
           }
         </div>
+        }
 
         @if(projectCreateMessage) {
-          <p>{{projectCreateMessage}}</p>
+        <p>{{projectCreateMessage}}</p>
         }
         <p></p>
         <a class="max-w-fit border-b border-ocean-500 text-ocean-500 flex items-center gap-2">
@@ -104,9 +389,7 @@
           </p>
         </a>
 
-
       </div>
-
       }
     </div>
 

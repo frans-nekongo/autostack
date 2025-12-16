@@ -118,13 +118,28 @@ interface DeleteResponse {
   error?: string;
 }
 
-export interface GitInitialiseResponse{
-  success: boolean
-  git_info: GitInfo
-  message?: string
-  error?: string  
+export interface GitInitialiseResponse {
+  success: boolean;
+  git_info: GitInfo;
+  message?: string;
+  error?: string;
 }
 
+interface ComponentInfo {
+  componentId: string;
+  name: string;
+  framework?: string;
+  technology: string;
+  dependencies: string[];
+}
+
+export interface ComponentsResponse {
+  project_id: string;
+  components: ComponentInfo[];
+  success: boolean;
+  error?: string;
+  message: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -308,10 +323,7 @@ export class ProjectService {
       .pipe(map((result) => result.data!.deleteProject));
   }
 
-
-  initialiseGit(
-    projectId: string,
-  ): Observable<GitInitialiseResponse> {
+  initialiseGit(projectId: string): Observable<GitInitialiseResponse> {
     const INITIALISE_GIT = gql`
       mutation InitialiseGit($projectId: String!) {
         initialiseGit(projectId: $projectId) {
@@ -388,6 +400,57 @@ export class ProjectService {
       .pipe(map((result) => result.data!.updateProject));
   }
 
+  fetchProjectComponents(projectId: string): Observable<ComponentsResponse> {
+    const FETCH_PROJECT_COMPONENTS = gql`
+      query FetchProjectComponents($projectId: String!) {
+        fetchProjectComponents(projectId: $projectId) {
+          project_id
+          success
+          error
+          message
+          components {
+            componentId
+            name
+            framework
+            technology
+            dependencies
+          }
+        }
+      }
+    `;
+
+    return this.apollo
+      .query<{ fetchProjectComponents: ComponentsResponse }>({
+        query: FETCH_PROJECT_COMPONENTS,
+        variables: { projectId },
+        fetchPolicy: 'network-only',
+      })
+      .pipe(map((result) => result.data?.fetchProjectComponents!));
+  }
+
+  deleteComponent(
+    componentId: string,
+  ): Observable<DeleteResponse> {
+    const DELETE_COMPONENT = gql`
+      mutation DeleteComponent($componentId: String!, $deleteFiles: Boolean) {
+        deleteComponent(componentId: $componentId, deleteFiles: $deleteFiles) {
+          success
+          message
+          error
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ deleteComponent: DeleteResponse }>({
+        mutation: DELETE_COMPONENT,
+        variables: {
+          componentId: componentId,
+          deleteFiles: true,
+        },
+      })
+      .pipe(map((result) => result.data!.deleteComponent));
+  }
   /**
    * Generate C4 Context Diagram
    */

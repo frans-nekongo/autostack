@@ -118,8 +118,8 @@ class RedisOperationStore:
     def __init__(
         self,
         redis_url: str = f'redis://{os.getenv('REDIS_USER')}:{os.getenv('REDIS_PASSWORD')}@{os.getenv('REDIS_HOST')}:6379/0',
-        max_connections: int = 100,
-        operation_ttl: int = 3600  # 1 hour
+        max_connections: int = 200,
+        operation_ttl: int = 7200  # 1 hour
     ):
         self.redis_url = redis_url
         self.operation_ttl = operation_ttl

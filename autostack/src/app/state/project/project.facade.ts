@@ -108,7 +108,11 @@ export class ProjectFacade {
   }
 
   initialiseGit(projectId: string): void {
-    this.store.dispatch(ProjectActions.initialiseRepository({ projectId }))
+    this.store.dispatch(ProjectActions.initialiseRepository({ projectId }));
+  }
+
+  deleteComponent(componentId: string): void {
+    this.store.dispatch(ProjectActions.deleteComponent({ componentId }));
   }
 
   /**

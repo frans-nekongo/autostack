@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from autostack_engine.utils.database.models.activities.models import ActivityLog, ActivityType
 from autostack_engine.utils.database.models.project.models import Project
 from autostack_engine.utils.database.mongo_client import DatabaseManager
 from autostack_engine.utils.orchestration.models import BaseService
@@ -718,14 +719,13 @@ class ComponentService(BaseService):
         
         return command_map.get(component.technology.lower(), component.technology)
     
-    
     async def delete_component(self, component_id: str, delete_files: bool = False) -> tuple[bool, Optional[str]]:
         """Delete a component"""
         try:
             db = DatabaseManager()
-            await db.connect([Component])
+            await db.connect([Component, Project, ActivityLog])
             
-            component = await Component.find_one({"component_id": component_id})
+            component = await Component.get(component_id)
             if not component:
                 return False, f"Component '{component_id}' not found"
             
@@ -745,6 +745,13 @@ class ComponentService(BaseService):
                     self.log_warning(f"Could not delete component directory: {e}")
             
             await component.delete()
+            activity = ActivityLog(
+                activity_type=ActivityType.DELETE_COMPONENT,
+                project_id=component.project_id,
+                project_name=project.name
+            )
+            
+            await activity.insert()
             
             self.log_info(f"Deleted component '{component_name}' (ID: {component_id})")
             return True, None

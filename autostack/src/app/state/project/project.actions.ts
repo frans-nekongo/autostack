@@ -34,6 +34,10 @@ export const ProjectActions = createActionGroup({
     'Initialise Repository Success': props<{projectId: string, gitInfo: GitInfo}>(),
     'Initialise Repository Failure': props<{error: string}>(),
 
+    'Delete Component': props<{ componentId: string }>(),
+    'Delete Component Success': emptyProps(),
+    'Delete Component Failure': props<{ error: string }>(),
+
     // Set Current Project (for navigation/selection)
     'Set Current Project': props<{ projectId: string }>(),
 

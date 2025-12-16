@@ -19,6 +19,7 @@ import { CommonModule } from '@angular/common';
   providers: [provideIcons({ heroArrowLeft })],
 })
 export class Project implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private projectFacade = inject(ProjectFacade);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -35,9 +36,20 @@ export class Project implements OnInit, OnDestroy {
         this.projectFacade.loadProject(projectId);
       }
     });
+
+    this.currentArchitecture$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((architecture) => {
+        if (architecture) {
+          console.log(architecture);
+        }
+      });
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   onBack(): void {
     this.router.navigate(['/']);
