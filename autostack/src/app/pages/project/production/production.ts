@@ -29,7 +29,6 @@ export class Production {
       })
     );
 
-    // Subscribe to production environment data
     this.subscriptions.add(
       this.projectFacade.currentProductionEnvironment$.subscribe((env) => {
         this.productionEnvironment = env;

@@ -9,7 +9,7 @@ import structlog
 from pathlib import Path
 from uuid import UUID
 
-from autostack_engine.utils.database.models.components.models import Component, Connection, Framework
+from autostack_engine.utils.database.models.components.models import Component, ComponentType, Connection, Framework
 from autostack_engine.utils.database.models.project.models import Project
 from autostack_engine.utils.database.models.technologies.models import Technology, TechnologyCategory
 from autostack_engine.utils.database.mongo_client import DatabaseManager
@@ -364,9 +364,30 @@ class ProductionService(BaseService):
             project_path.mkdir(parents=True, exist_ok=True)
             project_name = project_path.name
             
-            # Verify that Dockerfiles exist for each component
+            INFRASTRUCTURE_COMPONENT_TYPES = {
+                ComponentType.DATABASE,
+                ComponentType.CACHE,
+                ComponentType.EXTERNAL
+            }
+            
+            INFRASTRUCTURE_TECHNOLOGIES = {
+                "postgresql", "mysql", "mongodb", "sqlite",  
+                "redis", "memcached",                       
+                "rabbitmq", "kafka",                         
+            }
+            
             missing_dockerfiles = []
             for component in components:
+                is_infrastructure_component = component.type in INFRASTRUCTURE_COMPONENT_TYPES
+                is_infrastructure_tech = (
+                    component.technology and 
+                    component.technology.lower() in INFRASTRUCTURE_TECHNOLOGIES
+                )
+                
+                if is_infrastructure_component or is_infrastructure_tech:
+                    self.log_info(f"Skipping Dockerfile check for infrastructure component: {component.name} ({component.type})")
+                    continue
+                    
                 comp_dir_name = component.directory if hasattr(component, 'directory') else '.'
                 comp_dir = project_path / comp_dir_name
                 dockerfile_path = comp_dir / 'Dockerfile'
@@ -376,8 +397,8 @@ class ProductionService(BaseService):
                     self.log_warning(f"Dockerfile not found for {component.name} at {dockerfile_path}")
             
             if missing_dockerfiles:
-                self.log_error(f"Missing Dockerfiles for components: {', '.join(missing_dockerfiles)}")
-                self.log_error("Please ensure components are created first via components.create topic")
+                self.log_error(f"Missing Dockerfiles for application components: {', '.join(missing_dockerfiles)}")
+                self.log_error("Please ensure application components are scaffolded first via components.create topic")
                 return False
             
             # Build technology service configs (infrastructure)
@@ -388,13 +409,12 @@ class ProductionService(BaseService):
                 if tech.category == TechnologyCategory.RUNTIME:
                     self.log_info(f"Skipping runtime technology: {tech.name}")
                     continue
-                
+                    
                 tech_config = ComposeYamlGenerator.build_technology_config(tech, project_name)
                 tech_services.append(tech_config)
                 tech_service_names.append(tech_config['service_name'])
                 self.log_info(f"Added technology service: {tech_config['service_name']} ({tech.category})")
             
-            # Build connection map for component dependencies
             connection_map = {}
             for conn in connections:
                 source_id = str(conn.source_id) if hasattr(conn, 'source_id') else str(conn.get('source_id'))
@@ -413,7 +433,7 @@ class ProductionService(BaseService):
             
             total_services = len(tech_services) + len(component_services)
             self.log_info(f"Total services to add: {total_services} "
-                       f"({len(tech_services)} infrastructure, {len(component_services)} components)")
+                        f"({len(tech_services)} infrastructure, {len(component_services)} components)")
             
             if total_services == 0:
                 self.log_error("No services to configure!")
@@ -424,8 +444,7 @@ class ProductionService(BaseService):
                 project_name, component_services, tech_services
             )
             compose_path = project_path / 'docker-compose.yml'
-            
-            self.log_info(f"Generated compose content:\n{compose_content}")
+            self.log_info(f"Generated compose content")
             
             with open(compose_path, 'w') as f:
                 f.write(compose_content)
@@ -435,9 +454,10 @@ class ProductionService(BaseService):
             self.log_info(f"Component services: {[s['service_name'] for s in component_services]}")
             
             return True
+            
         except Exception as e:
             self.log_error("Error creating production environment",
-                project_id=project_id, error=str(e), exc_info=True)
+                        project_id=project_id, error=str(e), exc_info=True)
             return False
         
     def build_service_config(self, component: Component, connection_map: Dict, 

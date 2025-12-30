@@ -409,7 +409,11 @@ class ComponentService(BaseService):
                     await ComponentManager.update_component_status(component.component_id, ComponentStatus.FAILED)
                     return False
 
-                if not temp_dir.exists():
+                temp_project_dir_path = project_path
+                temp_project_dir_path.mkdir(parents=True, exist_ok=True)
+                temp_dir_path = temp_project_dir_path / temp_name
+                
+                if not temp_dir_path.exists():
                     self.log_error(f"Temporary Angular project directory not found at {temp_dir}")
                     self.log_error(f"Current contents of parent {parent_dir}: {list(parent_dir.glob('*'))}")
                     await ComponentManager.update_component_status(component.component_id, ComponentStatus.FAILED)
@@ -417,7 +421,8 @@ class ComponentService(BaseService):
 
                 self.log_info(f"Moving files from {temp_dir} to {component_dir}")
 
-                for item in temp_dir.iterdir():
+                component_dir.mkdir(parents=True, exist_ok=True)
+                for item in temp_dir_path.iterdir():
                     target = component_dir / item.name
                     if target.exists():
                         if target.is_dir():
@@ -427,22 +432,12 @@ class ComponentService(BaseService):
                             target.unlink()
                     item.rename(target)
 
-                for item in temp_dir.glob(".*"):
-                    if item.name not in {'.', '..'}:
-                        target = component_dir / item.name
-                        if target.exists():
-                            if target.is_dir():
-                                import shutil
-                                shutil.rmtree(target)
-                            else:
-                                target.unlink()
-                        item.rename(target)
-
-                temp_dir.rmdir()
+                
+                if temp_dir_path.exists():
+                    temp_dir_path.rmdir()
                 self.log_info("Angular files moved successfully")
 
             elif component.framework == Framework.DJANGO:
-                # Run in component_dir, use '.' for current dir
                 cwd = str(component_dir)
                 full_cmd = ["devbox", "run"] + scaffold_cmd 
             else:
@@ -456,7 +451,8 @@ class ComponentService(BaseService):
                     full_cmd,
                     cwd=cwd,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    timeout=9000 
                 )
                 if result.returncode != 0:
                     self.log_error(f"Scaffolding failed for {component.component_id}: {result.stderr}")
@@ -523,9 +519,9 @@ class ComponentService(BaseService):
             Framework.FASTAPI: ["pip", "install", "fastapi", "uvicorn"],
             Framework.EXPRESS: ["npx", "express-generator", ".", "--no-view"],
             Framework.NESTJS: ["npx", "@nestjs/cli", "new", component.component_id, "--skip-git"],
-            Framework.REACT: ["npm", "create", "vite@latest", ".", "--", "--template", "react"],  # Switched to Vite
+            Framework.REACT: ["npm", "create", "vite@latest", ".", "--", "--template", "react"],
             Framework.NEXTJS: ["npx", "create-next-app@latest", ".", "--yes", "--no-eslint"],
-            Framework.ANGULAR: ["npx", "@angular/cli", "new", component.component_id, "--routing=true", "--style=css", "--skip-git=true", "--skip-install"],  # Added --skip-install here too for consistency
+            Framework.ANGULAR: ["npx", "@angular/cli", "new", component.component_id, "--routing=true", "--style=css", "--skip-git=true", "--skip-install"], 
             Framework.VUE: ["npm", "create", "vite@latest", ".", "--", "--template", "vue"],  # Switched to Vite
             Framework.SVELTE: ["npm", "create", "vite@latest", ".", "--", "--template", "svelte"],  # Switched to Vite
             Framework.VANILLA: ["npm", "init", "-y"] if component.technology == "nodejs" else ["python", "-m", "venv", "venv"],
@@ -610,13 +606,18 @@ class ComponentService(BaseService):
                 return
             
             # Install dependencies using devbox shell
+            full_command = [
+                "devbox", "run", "--",
+                "bash", "-c",
+                f"cd {component_dir} && npm install"
+            ]
             result = await asyncio.to_thread(
                 subprocess.run,
-                ["devbox", "shell", "--", "npm", "install"],
+                full_command,
                 cwd=str(component_dir),
                 capture_output=True,
                 text=True,
-                timeout=300
+                timeout=9000
             )
             
             if result.returncode == 0:

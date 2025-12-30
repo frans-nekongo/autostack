@@ -78,7 +78,7 @@ class ProjectSubscription:
         while True:
             try:
                 # Wait for update with timeout to prevent hanging
-                update = await asyncio.wait_for(queue.get(), timeout=300.0)  # 5 min timeout
+                update = await asyncio.wait_for(queue.get(), timeout=1000.0)  # 5 min timeout
                 
                 if update is not None:
                     yield update

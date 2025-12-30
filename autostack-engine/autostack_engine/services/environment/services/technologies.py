@@ -47,11 +47,30 @@ class TechnologyService(BaseService):
             # Transform and create technologies
             tech_configs = []
             for tech_data in technologies:
-                # Convert environment_variables from list to dict if needed
-                if isinstance(tech_data.get('environment_variables'), list):
-                    env_vars = {env['name']: env['value'] for env in tech_data['environment_variables']}
-                    tech_data['environment_variables'] = env_vars
-                elif tech_data.get('environment_variables') == []:
+                env_vars_input = tech_data.get('environment_variables')
+                if isinstance(env_vars_input, list):
+                    # List of dicts or EnvironmentVariables objects
+                    env_vars = {}
+                    for env in env_vars_input:
+                        # Handle both dict-like and object-like (with .name / .value attributes)
+                        if hasattr(env, 'name') and hasattr(env, 'value'):
+                            env_vars[env.name] = env.value
+                        elif isinstance(env, dict):
+                            env_vars[env['name']] = env['value']
+                        else:
+                            self.log_warning(f"Invalid env var item in {tech_data.get('name')}")
+                    tech_data['environment_variables'] = env_vars if env_vars else None
+
+                elif hasattr(env_vars_input, 'name') and hasattr(env_vars_input, 'value'):
+                    # Single EnvironmentVariables object
+                    tech_data['environment_variables'] = {env_vars_input.name: env_vars_input.value}
+
+                elif env_vars_input in ([], None):
+                    tech_data['environment_variables'] = None
+
+                else:
+                    # Unexpected type – log and skip or set to None
+                    self.log_warning(f"Unexpected environment_variables type for {tech_data.get('name')}: {type(env_vars_input)}")
                     tech_data['environment_variables'] = None
                 
                 # Handle configuration

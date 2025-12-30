@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI):
     
     store = RedisOperationStore(
         redis_url=f'redis://{os.getenv("REDIS_USER")}:{os.getenv("REDIS_PASSWORD")}@{os.getenv("REDIS_HOST")}:6379/0',
-        max_connections=200,
-        operation_ttl=7200
+        max_connections=2000,
+        operation_ttl=3600
     )
     try:
         await store.initialize()
