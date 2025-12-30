@@ -21,15 +21,8 @@ class ChatInfo:
     initial_schema: Optional[JSON]  # type: ignore
     created_at: str
     updated_at: str
-
-
-@strawberry.type
-class GenerateArchitectureResponse:
-    """Response type for architecture generation"""
-    success: bool
-    schema: Optional[JSON]  # type: ignore
-    chat_id: Optional[str]
-    error: Optional[str]
+    has_validation_error: bool
+    validation_error: Optional[JSON] = None # type: ignore
 
 
 @strawberry.type
@@ -45,10 +38,38 @@ class CreateProjectResponse:
     success: bool
     project_id: Optional[str]
     error: Optional[str]
+   
+
+@strawberry.type
+class UnsupportedItem:
+    """Details about unsupported items"""
+    technologies: Optional[List[str]] = None
+    frameworks: Optional[List[str]] = None
+    component_types: Optional[List[str]] = None
+
+
+@strawberry.type
+class SupportedItems:
+    """Details about supported items"""
+    technologies: Optional[JSON] = None  # type: ignore
+    frameworks: Optional[List[str]] = None
+    component_types: Optional[List[str]] = None
+
+@strawberry.type
+class GenerateArchitectureResponse:
+    """Response type for architecture generation"""
+    success: bool
+    schema: Optional[JSON] = None  # type: ignore
+    chat_id: Optional[str] = None
+    error: Optional[str] = None
+    unsupported_items: Optional[UnsupportedItem] = None
+    supported_items: Optional[SupportedItems] = None
+    is_validation_error: bool = False
     
     
 @strawberry.type
 class ModelQuery:
+   
     @strawberry.field
     async def generate_architecture(
         self,
@@ -61,30 +82,62 @@ class ModelQuery:
             description: Natural language description of the project
             
         Returns:
-            GenerateArchitectureResponse with schema and chat_id
+            GenerateArchitectureResponse with schema and chat_id or error details
         """
         try:
             ai_service = AIService()
-            
-            success, schema, chat_id, error = await ai_service.generate_project_config(description)
+            success, result, chat_id, error = await ai_service.generate_project_config(description)
             
             if success:
                 logger.info(f"Generated architecture for chat: {chat_id}")
                 return GenerateArchitectureResponse(
                     success=True,
-                    schema=schema,
+                    schema=result,
                     chat_id=chat_id,
-                    error=None
+                    error=None,
+                    is_validation_error=False
                 )
             else:
-                logger.error(f"Failed to generate architecture: {error}")
-                return GenerateArchitectureResponse(
-                    success=False,
-                    schema=None,
-                    chat_id=None,
-                    error=error
-                )
-                
+                # Check if result contains error information (validation error)
+                if result and isinstance(result, dict) and "error" in result:
+                    error_info = result["error"]
+                    
+                    # Extract unsupported items
+                    unsupported = UnsupportedItem(
+                        technologies=error_info.get("unsupported_technologies"),
+                        frameworks=error_info.get("unsupported_frameworks"),
+                        component_types=error_info.get("unsupported_component_types")
+                    )
+                    
+                    # Extract supported items
+                    supported = SupportedItems(
+                        technologies=error_info.get("supported_technologies"),
+                        frameworks=error_info.get("supported_frameworks"),
+                        component_types=error_info.get("supported_component_types")
+                    )
+                    
+                    logger.warning(f"Validation error for chat {chat_id}: {error_info.get('message', error)}")
+                    
+                    return GenerateArchitectureResponse(
+                        success=False,
+                        schema=None,
+                        chat_id=chat_id,
+                        error=error_info.get("message", error),
+                        unsupported_items=unsupported,
+                        supported_items=supported,
+                        is_validation_error=True
+                    )
+                else:
+                    # Regular error (not validation)
+                    logger.error(f"Failed to generate architecture: {error}")
+                    return GenerateArchitectureResponse(
+                        success=False,
+                        schema=None,
+                        chat_id=chat_id,
+                        error=error,
+                        is_validation_error=False
+                    )
+                    
         except Exception as e:
             error_msg = f"Error generating architecture: {e}"
             logger.error(error_msg)
@@ -92,9 +145,88 @@ class ModelQuery:
                 success=False,
                 schema=None,
                 chat_id=None,
-                error=error_msg
+                error=error_msg,
+                is_validation_error=False
             )
     
+    @strawberry.field
+    async def regenerate_architecture(
+        self,
+        chat_id: str,
+        description: str,
+    ) -> GenerateArchitectureResponse:
+        """
+        Regenerate architecture for an existing chat with updated description.
+        
+        Args:
+            chat_id: ID of the existing chat
+            description: Updated natural language description
+            
+        Returns:
+            GenerateArchitectureResponse with updated schema
+        """
+        try:
+            ai_service = AIService()
+            success, result, updated_chat_id, error = await ai_service.regenerate_project_config(
+                chat_id, description
+            )
+            
+            if success:
+                logger.info(f"Regenerated architecture for chat: {chat_id}")
+                return GenerateArchitectureResponse(
+                    success=True,
+                    schema=result,
+                    chat_id=updated_chat_id,
+                    error=None,
+                    is_validation_error=False
+                )
+            else:
+                # Handle validation errors same as generate_architecture
+                if result and isinstance(result, dict) and "error" in result:
+                    error_info = result["error"]
+                    
+                    unsupported = UnsupportedItem(
+                        technologies=error_info.get("unsupported_technologies"),
+                        frameworks=error_info.get("unsupported_frameworks"),
+                        component_types=error_info.get("unsupported_component_types")
+                    )
+                    
+                    supported = SupportedItems(
+                        technologies=error_info.get("supported_technologies"),
+                        frameworks=error_info.get("supported_frameworks"),
+                        component_types=error_info.get("supported_component_types")
+                    )
+                    
+                    return GenerateArchitectureResponse(
+                        success=False,
+                        schema=None,
+                        chat_id=chat_id,
+                        error=error_info.get("message", error),
+                        unsupported_items=unsupported,
+                        supported_items=supported,
+                        is_validation_error=True
+                    )
+                else:
+                    return GenerateArchitectureResponse(
+                        success=False,
+                        schema=None,
+                        chat_id=chat_id,
+                        error=error,
+                        is_validation_error=False
+                    )
+                    
+        except Exception as e:
+            error_msg = f"Error regenerating architecture: {e}"
+            logger.error(error_msg)
+            return GenerateArchitectureResponse(
+                success=False,
+                schema=None,
+                chat_id=chat_id,
+                error=error_msg,
+                is_validation_error=False
+            )
+        
+        
     @strawberry.field
     async def get_chat(self, chat_id: str) -> Optional[ChatInfo]:
         """
@@ -117,13 +249,16 @@ class ModelQuery:
                     prompt=chat.prompt,
                     initial_schema=chat.initial_schema,
                     created_at=chat.created_at.isoformat(),
-                    updated_at=chat.updated_at.isoformat()
+                    updated_at=chat.updated_at.isoformat(),
+                    has_validation_error=chat.has_validation_error,
+                    validation_error=chat.validation_error
                 )
             return None
             
         except Exception as e:
             logger.error(f"Error fetching chat: {e}")
             return None
+    
     
     @strawberry.field
     async def list_chats(self) -> List[ChatInfo]:
@@ -144,7 +279,9 @@ class ModelQuery:
                     prompt=chat.prompt,
                     initial_schema=chat.initial_schema,
                     created_at=chat.created_at.isoformat(),
-                    updated_at=chat.updated_at.isoformat()
+                    updated_at=chat.updated_at.isoformat(),
+                    has_validation_error=chat.has_validation_error,
+                    validation_error=chat.validation_error
                 )
                 for chat in chats
             ]

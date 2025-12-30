@@ -5,7 +5,6 @@ services:
   {{ tech.service_name }}:
     image: {{ tech.image }}
     container_name: {{ project_name }}_{{ tech.service_name }}
-    platform: {{ platform }}
     restart: unless-stopped
     {% if tech.ports %}
     ports:

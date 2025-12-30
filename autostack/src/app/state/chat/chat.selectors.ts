@@ -71,3 +71,18 @@ export const selectPendingPrompt = createSelector(
   selectChatStore,
   (state: IChatState) => state.pendingPrompt
 );
+
+export const selectIsValidationError = createSelector(
+  selectChatStore,
+  (state: IChatState) => state.isValidationError
+);
+
+export const selectUnsupportedItems = createSelector(
+  selectChatStore,
+  (state: IChatState) => state.unsupportedItems
+);
+
+export const selectSupportedItems = createSelector(
+  selectChatStore,
+  (state: IChatState) => state.supportedItems
+);

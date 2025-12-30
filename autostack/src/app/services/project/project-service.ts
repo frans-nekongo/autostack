@@ -141,6 +141,30 @@ export interface ComponentsResponse {
   message: string;
 }
 
+export interface ProductionEnvironment {
+  project_id: string;
+  project_name: string;
+  compose_file: string;
+  compose_file_exists: boolean;
+  containers: Array<{
+    name: string;
+    status: string;
+    image: string;
+    ports: any[];
+    id: string;
+  }>;
+  container_count: number;
+  project_directory: string;
+  generated: boolean;
+}
+
+export interface ProductionEnvironmentResponse {
+  success: boolean;
+  data?: ProductionEnvironment;
+  error?: string;
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -428,9 +452,7 @@ export class ProjectService {
       .pipe(map((result) => result.data?.fetchProjectComponents!));
   }
 
-  deleteComponent(
-    componentId: string,
-  ): Observable<DeleteResponse> {
+  deleteComponent(componentId: string): Observable<DeleteResponse> {
     const DELETE_COMPONENT = gql`
       mutation DeleteComponent($componentId: String!, $deleteFiles: Boolean) {
         deleteComponent(componentId: $componentId, deleteFiles: $deleteFiles) {
@@ -450,6 +472,29 @@ export class ProjectService {
         },
       })
       .pipe(map((result) => result.data!.deleteComponent));
+  }
+
+  fetchProductionEnvironment(
+    projectId: string
+  ): Observable<ProductionEnvironmentResponse> {
+    const FETCH_PRODUCTION_ENVIRONMENT = gql`
+      query FetchProductionEnvironment($projectId: String!) {
+        fetchProductionEnvironment(projectId: $projectId) {
+          success
+          data
+          error
+          message
+        }
+      }
+    `;
+
+    return this.apollo
+      .query<{ fetchProductionEnvironment: ProductionEnvironmentResponse }>({
+        query: FETCH_PRODUCTION_ENVIRONMENT,
+        variables: { projectId },
+        fetchPolicy: 'network-only',
+      })
+      .pipe(map((result) => result.data?.fetchProductionEnvironment!));
   }
   /**
    * Generate C4 Context Diagram

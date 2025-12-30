@@ -13,7 +13,24 @@ export const ChatActions = createActionGroup({
       chatId: string;
       schema: any;
     }>(),
-    'Generate Architecture Failure': props<{ error: string }>(),
+    'Generate Architecture Failure': props<{ 
+      error: string;
+      isValidationError?: boolean;
+      unsupportedItems?: any[];
+      supportedItems?: any[];
+    }>(),
+
+    'Regenerate Architecture': props<{ chatId: string; description: string }>(),
+    'Regenerate Architecture Success': props<{
+      chatId: string;
+      schema: any;
+    }>(),
+    'Regenerate Architecture Failure': props<{
+      error: string;
+      isValidationError: boolean;
+      unsupportedItems?: any;
+      supportedItems?: any;
+    }>(),
 
     // Load Specific Chat
     'Load Chat': props<{ chatId: string }>(),
@@ -35,5 +52,6 @@ export const ChatActions = createActionGroup({
 
     // Reset State
     'Reset Chat State': emptyProps(),
+    'Clear Validation Error': emptyProps(),
   },
 });

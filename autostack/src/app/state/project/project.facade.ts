@@ -72,6 +72,19 @@ export class ProjectFacade {
     ProjectSelectors.selectHasCurrentArchitecture
   );
 
+  currentProductionEnvironment$ = this.store.select(
+    ProjectSelectors.selectCurrentProductionEnvironment
+  );
+  loadingProductionEnvironment$ = this.store.select(
+    ProjectSelectors.selectLoadingProductionEnvironment
+  );
+  productionContainers$ = this.store.select(
+    ProjectSelectors.selectProductionContainers
+  );
+  composeFileExists$ = this.store.select(
+    ProjectSelectors.selectComposeFileExists
+  );
+  containerCount$ = this.store.select(ProjectSelectors.selectContainerCount);
   // Actions
 
   /**
@@ -167,5 +180,11 @@ export class ProjectFacade {
     }
   ): void {
     this.store.dispatch(ProjectActions.updateProject({ projectId, updates }));
+  }
+
+  loadProductionEnvironment(projectId: string): void {
+    this.store.dispatch(
+      ProjectActions.loadProductionEnvironment({ projectId })
+    );
   }
 }

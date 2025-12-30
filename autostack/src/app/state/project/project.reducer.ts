@@ -179,6 +179,27 @@ const reducer = createReducer(
     error,
   })),
 
+  on(ProjectActions.loadProductionEnvironment, (state) => ({
+    ...state,
+    loadingProductionEnvironment: true,
+    error: null,
+  })),
+  on(
+    ProjectActions.loadProductionEnvironmentSuccess,
+    (state, { productionEnvironment }) => ({
+      ...state,
+      currentProductionEnvironment: productionEnvironment,
+      loadingProductionEnvironment: false,
+      error: null,
+    })
+  ),
+  on(ProjectActions.loadProductionEnvironmentFailure, (state, { error }) => ({
+    ...state,
+    currentProductionEnvironment: null,
+    loadingProductionEnvironment: false,
+    error,
+  })),
+
   // Reset State
   on(ProjectActions.resetProjectState, () => initialProjectState)
 );

@@ -118,14 +118,14 @@ export class Home implements OnInit {
 
   getActivityTypeDisplay(activityType: string): string {
     const activityTypeMap: { [key: string]: string } = {
-      update_project: 'Updated',
-      update_project_component: 'Updated',
-      delete_project: 'Deleted',
-      delete_chat: 'Deleted',
-      delete_component: 'Deleted',
-      create_project: 'Created',
-      create_chat: 'Created',
-      create_component: 'Created',
+      update_project: 'Updated Project',
+      update_project_component: 'Updated Component on',
+      delete_project: 'Deleted Project',
+      delete_chat: 'Deleted Chat',
+      delete_component: 'Deleted Component on',
+      create_project: 'Created Project',
+      create_chat: 'Created Chat',
+      create_component: 'Created Component',
     };
 
     return activityTypeMap[activityType] || 'Unknown Activity';
@@ -137,10 +137,10 @@ export class Home implements OnInit {
       update_project_component: 'heroArrowPathSolid',
       delete_project: 'heroTrashSolid',
       delete_chat: 'heroTrashSolid',
-      delete_component: 'Deleted Component',
+      delete_component: 'heroTrashSolid',
       create_project: 'heroSquaresPlusSolid',
-      create_chat: 'Created Chat',
-      create_component: 'Created Component',
+      create_chat: 'heroSquaresPlusSolid',
+      create_component: 'heroSquaresPlusSolid',
     };
 
     return activityTypeMap[activityType] || 'unknown';

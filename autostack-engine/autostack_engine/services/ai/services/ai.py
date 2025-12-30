@@ -18,7 +18,7 @@ from autostack_engine.utils.constants import TECHNOLOGY_CATALOG
 
 load_dotenv()
 
-json_schema = {
+unified_schema = {
     "type": "object",
     "properties": {
         "project": {
@@ -28,8 +28,7 @@ json_schema = {
                 "author": {"type": "string"},
                 "description": {"type": "string"},
                 "version": {"type": "string"},
-            },
-            "required": ["name", "author", "description"]
+            }
         },
         "technologies": {
             "type": "array",
@@ -40,8 +39,7 @@ json_schema = {
                     "type": {"type": "string"},
                     "version": {"type": "string"},
                     "environment_variables": {"type": "string"}
-                },
-                "required": ["name", "type"]
+                }
             }
         },
         "components": {
@@ -67,8 +65,7 @@ json_schema = {
                         "type": "array",
                         "items": {"type": "string"}
                     }
-                },
-                "required": ["component_id", "name", "technology", "framework", "type"]
+                }
             }
         },
         "connections": {
@@ -80,13 +77,49 @@ json_schema = {
                     "target": {"type": "string"},
                     "type": {"type": "string"},
                     "port": {"type": "integer"}
-                },
-                "required": ["source", "target"]
+                }
             }
+        },
+        # Error fields (optional)
+        "error": {
+            "type": "object",
+            "properties": {
+                "message": {"type": "string"},
+                "unsupported_technologies": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "unsupported_frameworks": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "unsupported_component_types": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "supported_technologies": {
+                    "type": "object",
+                    "properties": {
+                        "runtime": {"type": "array", "items": {"type": "string"}},
+                        "database": {"type": "array", "items": {"type": "string"}},
+                        "cache": {"type": "array", "items": {"type": "string"}},
+                        "queue": {"type": "array", "items": {"type": "string"}}
+                    }
+                },
+                "supported_frameworks": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "supported_component_types": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            },
+            "required": ["message"]
         }
-    },
-    "required": ["project", "technologies", "components", "connections"]
+    }
 }
+
 
 class ComponentTypeInput(Enum):
     DATABASE = "database"
@@ -95,6 +128,26 @@ class ComponentTypeInput(Enum):
     WEB = "web"
     GATEWAY = "gateway"
     EXTERNAL = "external"
+
+class Framework(str, Enum):
+    # Backend frameworks
+    FLASK = "flask"
+    FASTAPI = "fastapi"
+    EXPRESS = "express"
+    NESTJS = "nestjs"
+    
+    # Frontend frameworks
+    REACT = "react"
+    NEXTJS = "nextjs"
+    ANGULAR = "angular"
+    VUE = "vue"
+    SVELTE = "svelte"
+    
+    
+    # No framework
+    VANILLA = "vanilla"
+    NONE = "none"
+    
 
 class AIService(BaseService):
     """Service for managing AI-generated project configurations and chats"""
@@ -135,51 +188,101 @@ class AIService(BaseService):
         
         Args:
             user_prompt: Natural language description of the project
-            project_id: Optional UUID of the project to associate this chat with
             
         Returns:
-            tuple: (success: bool, schema: Optional[Dict], chat_id: Optional[str], error_message: Optional[str])
+            tuple: (success: bool, result/error_object: Optional[Dict], chat_id: Optional[str], error_message: Optional[str])
+            - On success: (True, schema_dict, chat_id, None)
+            - On validation error: (False, error_object_dict, chat_id, error_message)
+            - On other error: (False, None, None, error_message)
         """
         
         try:
             db = DatabaseManager()
             await db.connect([ProjectChat])
-                
-            available_techs = "Available Technologies:\n"
-            for category in ["runtime", "database", "cache", "queue"]:
-                techs_in_category = [
-                    tech for tech, info in TECHNOLOGY_CATALOG.items() 
-                    if info["category"] == category
-                ]
-                available_techs += f"- {category.title()}: {', '.join(techs_in_category)}\n"
             
-            available_component_types = "Available Component Types:\n- " + "\n- ".join(
-                [f"{comp_type.value.title()}: {comp_type.value}" for comp_type in ComponentTypeInput]
-            ) + "\n"
+            supported_techs_by_category = {
+                "runtime": [],
+                "database": [],
+                "cache": [],
+                "queue": []
+            }
+                
+            for tech, info in TECHNOLOGY_CATALOG.items():
+                category = info["category"]
+                if category in supported_techs_by_category:
+                    supported_techs_by_category[category].append(tech)
+
+            supported_frameworks = [f.value for f in Framework]
+            supported_component_types = [c.value for c in ComponentTypeInput]
+
+            available_techs = "Available Technologies:\n"
+            for category, techs in supported_techs_by_category.items():
+                available_techs += f"- {category.title()}: {', '.join(techs)}\n"
+
+            available_component_types = "Available Component Types:\n- " + "\n- ".join(supported_component_types)
+            available_frameworks = "Available Frameworks:\n- " + "\n- ".join(supported_frameworks)
             
             # System instructions
             system_prompt = f"""You are an AI assistant that generates project configuration JSON 
-            based on user requirements. Use the provided schema to create appropriate project, 
-            technologies, components, connections, and environments.
-            
-            Follow these rules:
-            - Assign unique component_ids (e.g., "auth-service", "user-service", "frontend")
-            - Set appropriate ports for each technology (8000-9000 range)
-            - Create logical connections between components
-            - Include all necessary environment variables
-            - Use realistic directory structures
-            
+            based on user requirements.
+
+            CRITICAL: If the user requests ANY technologies, frameworks, or component types that are 
+            NOT in the supported lists below, you MUST return an error response.
+
             TECHNOLOGY RESTRICTIONS:
             {available_techs}
             - ONLY use technologies from the list above
             - For technology "type" field, use the category (runtime, database, cache, queue)
             - Use "latest" as version unless specified otherwise
-            
-            COMPONENT RESTRICTIONS:
+
+            COMPONENT TYPE RESTRICTIONS:
             {available_component_types}
-            - ONLY use the types from the above list
-            - The type field should be from the category provided (database, cache, api, web, gateway, external)
-            
+            - ONLY use component types from the above list
+
+            FRAMEWORK RESTRICTIONS:
+            {available_frameworks}
+            - ONLY use frameworks from the above list
+
+            RESPONSE FORMAT:
+
+            For ERRORS (unsupported items):
+            {{
+            "error": {{
+                "message": "Clear description of what's unsupported",
+                "unsupported_technologies": ["list", "of", "unsupported", "techs"],
+                "unsupported_frameworks": ["list", "of", "unsupported", "frameworks"],
+                "unsupported_component_types": ["list", "of", "unsupported", "types"],
+                "supported_technologies": {{
+                "runtime": {supported_techs_by_category.get('runtime', [])},
+                "database": {supported_techs_by_category.get('database', [])},
+                "cache": {supported_techs_by_category.get('cache', [])},
+                "queue": {supported_techs_by_category.get('queue', [])}
+                }},
+                "supported_frameworks": {supported_frameworks},
+                "supported_component_types": {supported_component_types}
+            }}
+            }}
+
+            For SUCCESS (all items supported):
+            {{
+            "project": {{
+                "name": "project name",
+                "author": "author name",
+                "description": "description",
+                "version": "version"
+            }},
+            "technologies": [...],
+            "components": [...],
+            "connections": [...]
+            }}
+
+            RULES:
+            - Return ERROR response if ANY requested item is unsupported
+            - Assign unique component_ids (e.g., "auth-service", "user-service", "frontend")
+            - Set appropriate ports for each technology (8000-9000 range)
+            - Create logical connections between components
+            - Include all necessary environment variables
+
             Return ONLY valid JSON without any additional text, markdown, or code formatting.
             """
             
@@ -192,33 +295,224 @@ class AIService(BaseService):
                 contents=full_prompt,
                 config={
                     'response_mime_type': 'application/json',
-                    'response_schema': json_schema
+                    'response_schema': unified_schema
                 }
             )
             
-            schema_data = json.loads(response.text)
+            result = json.loads(response.text)
             
             # Generate chat title
             chat_title = self._generate_chat_title(user_prompt)
             
-            # Save to database
-            project_chat = ProjectChat(
-                chat_title=chat_title,
-                prompt=user_prompt,
-                initial_schema=schema_data,
-                created_at=datetime.now(),
-                updated_at=datetime.now()
-            )
+            # Check if it's an error response
+            if "error" in result:
+                error_info = result["error"]
+                error_message = error_info.get("message", "Unsupported technologies or frameworks requested")
+                
+                self.log_warning(f"Validation error: {error_message}")
+                
+                # Save the chat WITH the validation error details
+                project_chat = ProjectChat(
+                    chat_title=chat_title,
+                    prompt=user_prompt,
+                    initial_schema=None,
+                    has_validation_error=True,
+                    validation_error=error_info,  # Store the full error object
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                
+                await project_chat.insert()
+                
+                return (False, result, str(project_chat.id), error_message)
+            else:
+                # Success - save to database
+                project_chat = ProjectChat(
+                    chat_title=chat_title,
+                    prompt=user_prompt,
+                    initial_schema=result,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                
+                await project_chat.insert()
+                
+                self.log_info(f"Generated project config and saved chat with ID: {project_chat.id}")
+                return (True, result, str(project_chat.id), None)
             
-            await project_chat.insert()
-            
-            self.log_info(f"Generated project config and saved chat with ID: {project_chat.id}")
-            return True, schema_data, str(project_chat.id), None
+        except json.JSONDecodeError as e:
+            error_msg = f"Failed to parse AI response as JSON: {str(e)}"
+            self.log_error(error_msg)
+            return (False, None, None, error_msg)
             
         except Exception as e:
             error_msg = f"Error generating schema: {traceback.format_exc()}"
             self.log_error(error_msg)
-            return False, None, str(e)
+            return (False, None, None, str(e))
+      
+    async def regenerate_project_config(
+        self,
+        chat_id: str,
+        user_prompt: str,
+    ) -> tuple[bool, Optional[Dict[str, Any]], Optional[str], Optional[str]]:
+        """
+        Regenerate project configuration for an existing chat.
+        
+        Args:
+            chat_id: ID of the existing chat
+            user_prompt: Updated natural language description
+            
+        Returns:
+            tuple: (success, result/error_object, chat_id, error_message)
+        """
+        try:
+            db = DatabaseManager()
+            await db.connect([ProjectChat])
+            
+            # Load existing chat
+            existing_chat = await ProjectChat.get(chat_id)
+            if not existing_chat:
+                return (False, None, None, "Chat not found")
+            
+            # Use the same generation logic as generate_project_config
+            # ... (copy the generation code from generate_project_config)
+            
+            supported_techs_by_category = {
+                "runtime": [],
+                "database": [],
+                "cache": [],
+                "queue": []
+            }
+                
+            for tech, info in TECHNOLOGY_CATALOG.items():
+                category = info["category"]
+                if category in supported_techs_by_category:
+                    supported_techs_by_category[category].append(tech)
+
+            supported_frameworks = [f.value for f in Framework]
+            supported_component_types = [c.value for c in ComponentTypeInput]
+
+            available_techs = "Available Technologies:\n"
+            for category, techs in supported_techs_by_category.items():
+                available_techs += f"- {category.title()}: {', '.join(techs)}\n"
+
+            available_component_types = "Available Component Types:\n- " + "\n- ".join(supported_component_types)
+            available_frameworks = "Available Frameworks:\n- " + "\n- ".join(supported_frameworks)
+            
+            system_prompt = f"""You are an AI assistant that generates project configuration JSON 
+            based on user requirements.
+
+            CRITICAL: If the user requests ANY technologies, frameworks, or component types that are 
+            NOT in the supported lists below, you MUST return an error response.
+
+            TECHNOLOGY RESTRICTIONS:
+            {available_techs}
+            - ONLY use technologies from the list above
+            - For technology "type" field, use the category (runtime, database, cache, queue)
+            - Use "latest" as version unless specified otherwise
+
+            COMPONENT TYPE RESTRICTIONS:
+            {available_component_types}
+            - ONLY use component types from the above list
+
+            FRAMEWORK RESTRICTIONS:
+            {available_frameworks}
+            - ONLY use frameworks from the above list
+
+            RESPONSE FORMAT:
+
+            For ERRORS (unsupported items):
+            {{
+            "error": {{
+                "message": "Clear description of what's unsupported",
+                "unsupported_technologies": ["list", "of", "unsupported", "techs"],
+                "unsupported_frameworks": ["list", "of", "unsupported", "frameworks"],
+                "unsupported_component_types": ["list", "of", "unsupported", "types"],
+                "supported_technologies": {{
+                "runtime": {supported_techs_by_category.get('runtime', [])},
+                "database": {supported_techs_by_category.get('database', [])},
+                "cache": {supported_techs_by_category.get('cache', [])},
+                "queue": {supported_techs_by_category.get('queue', [])}
+                }},
+                "supported_frameworks": {supported_frameworks},
+                "supported_component_types": {supported_component_types}
+            }}
+            }}
+
+            For SUCCESS (all items supported):
+            {{
+            "project": {{
+                "name": "project name",
+                "author": "author name",
+                "description": "description",
+                "version": "version"
+            }},
+            "technologies": [...],
+            "components": [...],
+            "connections": [...]
+            }}
+
+            RULES:
+            - Return ERROR response if ANY requested item is unsupported
+            - Assign unique component_ids (e.g., "auth-service", "user-service", "frontend")
+            - Set appropriate ports for each technology (8000-9000 range)
+            - Create logical connections between components
+            - Include all necessary environment variables
+
+            Return ONLY valid JSON without any additional text, markdown, or code formatting.
+            """
+            
+            full_prompt = f"{system_prompt}\n\nUser Request: {user_prompt}"
+            
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=full_prompt,
+                config={
+                    'response_mime_type': 'application/json',
+                    'response_schema': unified_schema
+                }
+            )
+            
+            result = json.loads(response.text)
+            
+            # Check if it's an error response
+            if "error" in result:
+                error_info = result["error"]
+                error_message = error_info.get("message", "Unsupported technologies or frameworks requested")
+                
+                self.log_warning(f"Validation error: {error_message}")
+                
+                # Update chat with validation error
+                existing_chat.prompt = user_prompt
+                existing_chat.initial_schema = None
+                existing_chat.has_validation_error = True
+                existing_chat.validation_error = error_info  # Store the full error object
+                existing_chat.updated_at = datetime.now()
+                await existing_chat.save()
+                
+                return (False, result, chat_id, error_message)
+            else:
+                # Success - update chat with new schema
+                existing_chat.prompt = user_prompt
+                existing_chat.initial_schema = result
+                existing_chat.has_validation_error = False
+                existing_chat.validation_error = None
+                existing_chat.updated_at = datetime.now()
+                await existing_chat.save()
+                
+                self.log_info(f"Regenerated project config for chat: {chat_id}")
+                return (True, result, chat_id, None)
+            
+        except json.JSONDecodeError as e:
+            error_msg = f"Failed to parse AI response as JSON: {str(e)}"
+            self.log_error(error_msg)
+            return (False, None, chat_id, error_msg)
+            
+        except Exception as e:
+            error_msg = f"Error regenerating schema: {traceback.format_exc()}"
+            self.log_error(error_msg)
+            return (False, None, chat_id, str(e))  
+        
         
     async def get_chat(self, chat_id: str) -> Optional[ProjectChat]:
         """
@@ -245,6 +539,7 @@ class AIService(BaseService):
         except Exception as e:
             self.log_error(f"Error fetching chat: {e}")
             return None
+    
     
     async def list_chats(self) -> list[ProjectChat]:
         """

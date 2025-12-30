@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { map, Observable } from 'rxjs';
+import { ChatInfo } from '../../state/chat/chat.models';
 
 const GENERATE_ARCHITECTURE = gql`
   query GenerateArchitecture($description: String!) {
@@ -22,6 +23,8 @@ const GET_CHAT = gql`
       initialSchema
       createdAt
       updatedAt
+      hasValidationError
+      validationError
     }
   }
 `;
@@ -48,21 +51,44 @@ const DELETE_CHAT = gql`
   }
 `;
 
-// Response Interfaces
+const REGENERATE_ARCHITECTURE = gql`
+  query RegenerateArchitecture($chatId: String!, $description: String!) {
+    regenerateArchitecture(chatId: $chatId, description: $description) {
+      success
+      schema
+      chatId
+      error
+      isValidationError
+      unsupportedItems {
+        technologies
+        frameworks
+        componentTypes
+      }
+      supportedItems {
+        technologies
+        frameworks
+        componentTypes
+      }
+    }
+  }
+`;
+
 export interface GenerateArchitectureResponse {
   success: boolean;
   schema?: any;
   chatId?: string;
   error?: string;
-}
-
-export interface ChatInfo {
-  id: string;
-  chatTitle?: string;
-  prompt: string;
-  initialSchema?: any;
-  createdAt: string;
-  updatedAt: string;
+  isValidationError?: boolean;
+  unsupportedItems?: {
+    technologies?: string[];
+    frameworks?: string[];
+    componentTypes?: string[];
+  };
+  supportedItems?: {
+    technologies?: Record<string, string[]>;
+    frameworks?: string[];
+    componentTypes?: string[];
+  };
 }
 
 export interface DeleteChatResponse {
@@ -70,14 +96,15 @@ export interface DeleteChatResponse {
   error?: string;
 }
 
-
 @Injectable({
   providedIn: 'root',
 })
 export class ChatService {
   private apollo = inject(Apollo);
 
-  generateArchitecture(description: string): Observable<GenerateArchitectureResponse> {
+  generateArchitecture(
+    description: string
+  ): Observable<GenerateArchitectureResponse> {
     return this.apollo
       .query<{ generateArchitecture: GenerateArchitectureResponse }>({
         query: GENERATE_ARCHITECTURE,
@@ -93,6 +120,25 @@ export class ChatService {
       );
   }
 
+  regenerateArchitecture(
+    chatId: string,
+    description: string
+  ): Observable<GenerateArchitectureResponse> {
+    return this.apollo
+      .query<{ regenerateArchitecture: GenerateArchitectureResponse }>({
+        query: REGENERATE_ARCHITECTURE,
+        variables: { chatId, description },
+      })
+      .pipe(
+        map((result) => {
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+          return result.data!.regenerateArchitecture;
+        })
+      );
+  }
+
   getChat(chatId: string): Observable<ChatInfo> {
     return this.apollo
       .query<{ getChat: ChatInfo | null }>({
@@ -101,11 +147,11 @@ export class ChatService {
         fetchPolicy: 'network-only',
       })
       .pipe(
-        map((result) => { 
+        map((result) => {
           if (result.error) {
             throw new Error(result.error.message);
           }
-          return result.data?.getChat as ChatInfo
+          return result.data?.getChat as ChatInfo;
         })
       );
   }
@@ -141,5 +187,4 @@ export class ChatService {
         })
       );
   }
-
 }

@@ -108,7 +108,6 @@ class ProjectService(BaseService):
             if project_data.get('chat_id', ''):
                 project_chat = await ProjectChat.get(project_data.get('chat_id', ''))
                 project_chat.chat_title = f'{project_name} schema generation'
-                project_chat.initial_schema.project.name = project_name
                 await project_chat.save()
                 
             activity = ActivityLog(

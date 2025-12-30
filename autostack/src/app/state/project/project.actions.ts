@@ -3,6 +3,7 @@ import {
   ProjectResult,
   ProjectArchitecture,
   GitInfo,
+  ProductionEnvironment,
 } from '../../services/project/project-service';
 
 export const ProjectActions = createActionGroup({
@@ -30,13 +31,22 @@ export const ProjectActions = createActionGroup({
     'Create Project Success': props<{ projectId: string; message: string }>(),
     'Create Project Failure': props<{ error: string }>(),
 
-    'Initialise Repository': props<{projectId: string}>(),
-    'Initialise Repository Success': props<{projectId: string, gitInfo: GitInfo}>(),
-    'Initialise Repository Failure': props<{error: string}>(),
+    'Initialise Repository': props<{ projectId: string }>(),
+    'Initialise Repository Success': props<{
+      projectId: string;
+      gitInfo: GitInfo;
+    }>(),
+    'Initialise Repository Failure': props<{ error: string }>(),
 
     'Delete Component': props<{ componentId: string }>(),
     'Delete Component Success': emptyProps(),
     'Delete Component Failure': props<{ error: string }>(),
+
+    'Load Production Environment': props<{ projectId: string }>(),
+    'Load Production Environment Success': props<{
+      productionEnvironment: ProductionEnvironment;
+    }>(),
+    'Load Production Environment Failure': props<{ error: string }>(),
 
     // Set Current Project (for navigation/selection)
     'Set Current Project': props<{ projectId: string }>(),

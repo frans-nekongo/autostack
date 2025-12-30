@@ -346,16 +346,31 @@ class ComponentService(BaseService):
             return False
     
     async def _scaffold_component(self, project_path: Path, component: Component):
-        """Scaffold a component using its framework CLI within devbox shell"""
+        """Scaffold a component using its framework CLI with devbox run"""
         try:
             await ComponentManager.update_component_status(
-                component.component_id, 
+                component.component_id,
                 ComponentStatus.SCAFFOLDING
             )
-            
             component_dir = project_path / component.directory
             component_dir.mkdir(parents=True, exist_ok=True)
-            
+
+            if component.technology == "nodejs":
+                self.log_info(f"Clearing npm cache for {component.component_id} to prevent JSON parse issues")
+                clear_cmd = ["devbox", "run", "npm", "cache", "clean", "--force"]
+                clear_result = await asyncio.to_thread(
+                    subprocess.run,
+                    clear_cmd,
+                    cwd=str(project_path.resolve()),  
+                    capture_output=True,
+                    text=True,
+                    timeout=9000
+                )
+                if clear_result.returncode != 0:
+                    self.log_warning(f"npm cache clean failed (may be harmless, continuing): {clear_result.stderr}")
+                else:
+                    self.log_info("npm cache cleared successfully")
+                
             scaffold_cmd = self._get_scaffold_command(component)
             if not scaffold_cmd:
                 self.log_warning(f"No scaffold command for {component.framework}")
@@ -364,151 +379,111 @@ class ComponentService(BaseService):
                     ComponentStatus.RUNNING
                 )
                 return
-            
-            self.log_info(f"Scaffolding {component.component_id} with {component.framework}")
-            self.log_info(f"Command: {' '.join(scaffold_cmd)}")
-            
-            # For Django specifically, ensure the command creates files in the correct location
-            if component.framework == Framework.DJANGO:
-                # Django's startproject command needs the current directory to be where we want the project
-                # The command "django-admin startproject name ." should create files in current directory
-                process = await asyncio.to_thread(
-                    subprocess.Popen,
-                    ["devbox", "shell"],
-                    cwd=str(component_dir),  # Run from the component directory
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True
-                )
-                
-                # Send the Django command to the active shell session
-                django_command = " ".join(scaffold_cmd) + "\n"
-                # Wait for command to complete
-                django_command += "sleep 10\n"
-                django_command += "ls -la\n"
-                # Exit the shell
-                django_command += "exit\n"
-                
-                stdout, stderr = await asyncio.to_thread(process.communicate, django_command)
 
-                result = subprocess.CompletedProcess(
-                    args=["devbox", "shell"],
-                    returncode=process.returncode,
-                    stdout=stdout,
-                    stderr=stderr
-                )
-                
-                if result.returncode == 0:
-                    self.log_info(f"Successfully scaffolded Django project {component.component_id}")
-                    
-                    await asyncio.sleep(1)
-                    
-                    # Verify Django files were created
-                    expected_files = ['manage.py', component.component_id]
-                    files_created = all((component_dir / file).exists() for file in expected_files)
-                    
-                    if files_created:
-                        self.log_info(f"Django project files verified in {component_dir}")
-                        # List created files for debugging
-                        created_files = list(component_dir.glob("*"))
-                        self.log_info(f"Files created: {[f.name for f in created_files]}")
-                    else:
-                        self.log_warning(f"Django project files may be missing in {component_dir}")
-                    
-                else:
-                    self.log_error(f"Error scaffolding Django project {component.component_id}: {result.stderr}")
-                    
-                    
-            elif component.framework == Framework.ANGULAR:
-                # Angular CLI creates a subdirectory, so we scaffold in parent and move files
+            self.log_info(f"Scaffolding {component.component_id} with {scaffold_cmd}")
+
+            if component.framework == Framework.ANGULAR:
                 parent_dir = component_dir.parent
+                parent_dir.mkdir(parents=True, exist_ok=True)
                 temp_name = f"temp_{component.component_id}"
-                
-                process = await asyncio.to_thread(
-                    subprocess.Popen,
-                    ["devbox", "shell"],
-                    cwd=str(parent_dir),
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True
+                temp_dir = parent_dir / temp_name
+
+                full_cmd = [
+                    "devbox", "run", "npx", "@angular/cli", "new", temp_name,
+                    "--routing=true", "--style=css", "--skip-git=true", "--skip-install"
+                ]
+
+                self.log_info(f"Running Angular scaffolding in {parent_dir} -> creating {temp_dir}")
+
+                result = await asyncio.to_thread(
+                    subprocess.run,
+                    full_cmd,
+                    cwd=str(parent_dir.resolve()),
+                    capture_output=True,
+                    text=True,
+                    timeout=9000 
                 )
-                
-                # Create in temp directory, then move contents
-                scaffold_command = f"npx @angular/cli new {temp_name} --routing=true --style=css --skip-git=true\n"
-                scaffold_command += f"mv {temp_name}/* {component_dir.name}/\n"
-                scaffold_command += f"mv {temp_name}/.* {component_dir.name}/ 2>/dev/null || true\n"
-                scaffold_command += f"rm -rf {temp_name}\n"
-                scaffold_command += "exit\n"
+
+                if result.returncode != 0:
+                    self.log_error(f"Angular scaffolding failed: {result.stderr}")
+                    await ComponentManager.update_component_status(component.component_id, ComponentStatus.FAILED)
+                    return False
+
+                if not temp_dir.exists():
+                    self.log_error(f"Temporary Angular project directory not found at {temp_dir}")
+                    self.log_error(f"Current contents of parent {parent_dir}: {list(parent_dir.glob('*'))}")
+                    await ComponentManager.update_component_status(component.component_id, ComponentStatus.FAILED)
+                    return False
+
+                self.log_info(f"Moving files from {temp_dir} to {component_dir}")
+
+                for item in temp_dir.iterdir():
+                    target = component_dir / item.name
+                    if target.exists():
+                        if target.is_dir():
+                            import shutil
+                            shutil.rmtree(target)
+                        else:
+                            target.unlink()
+                    item.rename(target)
+
+                for item in temp_dir.glob(".*"):
+                    if item.name not in {'.', '..'}:
+                        target = component_dir / item.name
+                        if target.exists():
+                            if target.is_dir():
+                                import shutil
+                                shutil.rmtree(target)
+                            else:
+                                target.unlink()
+                        item.rename(target)
+
+                temp_dir.rmdir()
+                self.log_info("Angular files moved successfully")
+
+            elif component.framework == Framework.DJANGO:
+                # Run in component_dir, use '.' for current dir
+                cwd = str(component_dir)
+                full_cmd = ["devbox", "run"] + scaffold_cmd 
             else:
-                process = await asyncio.to_thread(
-                    subprocess.Popen,
-                    ["devbox", "shell"],
-                    cwd=str(component_dir),
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                # General case
+                cwd = str(component_dir)
+                full_cmd = ["devbox", "run"] + scaffold_cmd
+
+            if component.framework != Framework.ANGULAR:  
+                result = await asyncio.to_thread(
+                    subprocess.run,
+                    full_cmd,
+                    cwd=cwd,
+                    capture_output=True,
                     text=True
                 )
-                
-                scaffold_command = " ".join(scaffold_cmd) + "\nexit\n"
+                if result.returncode != 0:
+                    self.log_error(f"Scaffolding failed for {component.component_id}: {result.stderr}")
+                    await ComponentManager.update_component_status(component.component_id, ComponentStatus.FAILED)
+                    return False
 
-            stdout, stderr = await asyncio.to_thread(process.communicate, scaffold_command)
+            # Post-scaffolding steps (common)
+            if component.environment_variables:
+                await self._create_env_file(component_dir, component.environment_variables)
 
-            result = subprocess.CompletedProcess(
-                args=["devbox", "shell"],
-                returncode=process.returncode,
-                stdout=stdout,
-                stderr=stderr
+            await self._initialize_project_dependencies(component_dir, component)
+
+            await ComponentManager.update_component_status(
+                component.component_id,
+                ComponentStatus.RUNNING
             )
-            
-            if result.returncode == 0:
-                self.log_info(f"Successfully scaffolded {component.component_id}")
-                
-                # Verify Django files were created
-                if component.framework == Framework.DJANGO:
-                    expected_files = ['manage.py']
-                    files_created = all((component_dir / file).exists() for file in expected_files)
-                    if files_created:
-                        self.log_info(f"Django project files verified in {component_dir}")
-                    else:
-                        self.log_warning(f"Django project files may be missing in {component_dir}")
-                
-                # Create .env file if environment variables exist
-                if component.environment_variables:
-                    await self._create_env_file(component_dir, component.environment_variables)
-                
-                # Initialize project dependencies based on technology
-                await self._initialize_project_dependencies(component_dir, component)
-                
-                await ComponentManager.update_component_status(
-                    component.component_id,
-                    ComponentStatus.RUNNING
-                )
-            else:
-                self.log_error(f"Error scaffolding {component.component_id}: {result.stderr}")
-                await ComponentManager.update_component_status(
-                    component.component_id,
-                    ComponentStatus.FAILED
-                )
-            
+            self.log_info(f"Successfully scaffolded {component.component_id}")
             return True
-        
-        except subprocess.TimeoutExpired:
-            self.log_error(f"Scaffolding timeout for {component.component_id}")
-            await ComponentManager.update_component_status(
-                component.component_id,
-                ComponentStatus.FAILED
-            )
-            return False
+
         except Exception as e:
-            self.log_error(f"Scaffolding error: {e}")
+            self.log_error(f"Scaffolding error: {traceback.format_exc()}")
             await ComponentManager.update_component_status(
                 component.component_id,
                 ComponentStatus.FAILED
             )
             return False
+    
     
     async def update_component(self, component_id: str, updates: Dict[str, Any]) -> tuple[bool, Optional[str]]:
         """Update a component"""
@@ -548,11 +523,11 @@ class ComponentService(BaseService):
             Framework.FASTAPI: ["pip", "install", "fastapi", "uvicorn"],
             Framework.EXPRESS: ["npx", "express-generator", ".", "--no-view"],
             Framework.NESTJS: ["npx", "@nestjs/cli", "new", component.component_id, "--skip-git"],
-            Framework.REACT: ["npx", "create-react-app", "."],
+            Framework.REACT: ["npm", "create", "vite@latest", ".", "--", "--template", "react"],  # Switched to Vite
             Framework.NEXTJS: ["npx", "create-next-app@latest", ".", "--yes", "--no-eslint"],
-            Framework.ANGULAR: ["npx", "@angular/cli", "new", component.component_id, "--routing=true", "--style=css", "--skip-git=true"],
-            Framework.VUE: ["npx", "@vue/cli", "create", ".", "--default"],
-            Framework.SVELTE: ["npx", "degit", "sveltejs/template", "."],
+            Framework.ANGULAR: ["npx", "@angular/cli", "new", component.component_id, "--routing=true", "--style=css", "--skip-git=true", "--skip-install"],  # Added --skip-install here too for consistency
+            Framework.VUE: ["npm", "create", "vite@latest", ".", "--", "--template", "vue"],  # Switched to Vite
+            Framework.SVELTE: ["npm", "create", "vite@latest", ".", "--", "--template", "svelte"],  # Switched to Vite
             Framework.VANILLA: ["npm", "init", "-y"] if component.technology == "nodejs" else ["python", "-m", "venv", "venv"],
             Framework.NONE: ["npm", "init", "-y"] if component.technology == "nodejs" else ["python", "-m", "venv", "venv"],
         }

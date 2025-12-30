@@ -1,23 +1,19 @@
 import {
   ProjectResult,
   ProjectArchitecture,
+  ProductionEnvironment,
 } from '../../services/project/project-service';
 
 export interface IProjectState {
-  // Current selected project
   currentProjectId: string | null;
   currentProject: ProjectResult | null;
   currentArchitecture: ProjectArchitecture | null;
-
-  // All projects list
+  currentProductionEnvironment: ProductionEnvironment | null; 
   projects: ProjectResult[];
-
-  // Loading states
   loading: boolean;
   loadingArchitecture: boolean;
   creating: boolean;
-
-  // Error state
+  loadingProductionEnvironment: boolean; 
   error: string | null;
 }
 
@@ -25,9 +21,11 @@ export const initialProjectState: IProjectState = {
   currentProjectId: null,
   currentProject: null,
   currentArchitecture: null,
+  currentProductionEnvironment: null,
   projects: [],
   loading: false,
   loadingArchitecture: false,
   creating: false,
+  loadingProductionEnvironment: false,
   error: null,
 };

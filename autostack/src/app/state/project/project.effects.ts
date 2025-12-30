@@ -259,5 +259,31 @@ export class ProjectEffects {
     )
   );
 
-
+  loadProductionEnvironment$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ProjectActions.loadProductionEnvironment),
+      switchMap(({ projectId }) =>
+        this.projectService.fetchProductionEnvironment(projectId).pipe(
+          map((result) => {
+            if (result.success && result.data) {
+              return ProjectActions.loadProductionEnvironmentSuccess({
+                productionEnvironment: result.data,
+              });
+            } else {
+              return ProjectActions.loadProductionEnvironmentFailure({
+                error: result.error || 'Failed to load production environment',
+              });
+            }
+          }),
+          catchError((error) =>
+            of(
+              ProjectActions.loadProductionEnvironmentFailure({
+                error: error.message || 'Failed to load production environment',
+              })
+            )
+          )
+        )
+      )
+    )
+  );
 }

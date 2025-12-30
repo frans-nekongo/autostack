@@ -36,13 +36,21 @@ const reducer = createReducer(
     error: null,
     pendingPrompt: null,
   })),
-  on(ChatActions.generateArchitectureFailure, (state, { error }) => ({
-    ...state,
-    isGenerating: false,
-    loading: false,
-    error,
-    pendingPrompt: null,
-  })),
+
+  on(ChatActions.generateArchitectureFailure, (state, { error }) => {
+    const errorObj = typeof error === 'string' ? null : (error as any);
+    const errorMessage = typeof error === 'string' ? error : errorObj?.message;
+    return {
+      ...state,
+      isGenerating: false,
+      loading: false,
+      error: errorMessage,
+      isValidationError: errorObj?.isValidationError || false,
+      unsupportedItems: errorObj?.unsupportedItems || null,
+      supportedItems: errorObj?.supportedItems || null,
+      pendingPrompt: null,
+    };
+  }),
 
   // Load Chat
   on(ChatActions.loadChat, (state, { chatId }) => ({
@@ -107,6 +115,54 @@ const reducer = createReducer(
   on(ChatActions.setCurrentChat, (state, { chatId }) => ({
     ...state,
     currentChatId: chatId,
+  })),
+
+  on(ChatActions.regenerateArchitecture, (state) => ({
+    ...state,
+    isGenerating: true,
+    loading: true,
+    error: null,
+    isValidationError: false,
+    unsupportedItems: null,
+    supportedItems: null,
+  })),
+  on(
+    ChatActions.regenerateArchitectureSuccess,
+    (state, { chatId, schema }) => ({
+      ...state,
+      currentChat: state.currentChat
+        ? { ...state.currentChat, initialSchema: schema }
+        : null,
+      isGenerating: false,
+      loading: false,
+      error: null,
+      isValidationError: false,
+      unsupportedItems: null,
+      supportedItems: null,
+    })
+  ),
+  on(
+    ChatActions.regenerateArchitectureFailure,
+    (
+      state,
+      { error, isValidationError, unsupportedItems, supportedItems }
+    ) => ({
+      ...state,
+      isGenerating: false,
+      loading: false,
+      error,
+      isValidationError,
+      unsupportedItems: isValidationError ? unsupportedItems : null,
+      supportedItems: isValidationError ? supportedItems : null,
+    })
+  ),
+
+  on(ChatActions.clearValidationError, (state) => ({
+    ...state,
+    error: null,
+    isValidationError: false,
+    unsupportedItems: null,
+    supportedItems: null,
   })),
 
   // Reset State

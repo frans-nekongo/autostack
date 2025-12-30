@@ -5,6 +5,16 @@ export interface ChatInfo {
   initialSchema?: any;
   createdAt: string;
   updatedAt: string;
+  hasValidationError: boolean;
+  validationError?: {
+    message: string;
+    unsupported_technologies?: string[];
+    unsupported_frameworks?: string[];
+    unsupported_component_types?: string[];
+    supported_technologies?: Record<string, string[]>;
+    supported_frameworks?: string[];
+    supported_component_types?: string[];
+  };
 }
 
 export interface IChatState {
@@ -15,6 +25,17 @@ export interface IChatState {
   loading: boolean;
   error: string | null;
   isGenerating: boolean;
+  isValidationError: boolean;
+  unsupportedItems: {
+    technologies?: string[];
+    frameworks?: string[];
+    componentTypes?: string[];
+  } | null;
+  supportedItems: {
+    technologies?: Record<string, string[]>;
+    frameworks?: string[];
+    componentTypes?: string[];
+  } | null;
 }
 
 export const initialChatState: IChatState = {
@@ -24,5 +45,8 @@ export const initialChatState: IChatState = {
   loading: false,
   error: null,
   isGenerating: false,
-  pendingPrompt: null
+  pendingPrompt: null,
+  isValidationError: false,
+  unsupportedItems: null,
+  supportedItems: null,
 };

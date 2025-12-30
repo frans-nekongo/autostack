@@ -6,7 +6,11 @@ import structlog
 import yaml
 from typing import Optional, List
 from datetime import datetime
+import docker
+from docker.errors import DockerException
+import os
 
+from autostack_engine.services.environment.services.production import ProductionService
 from autostack_engine.services.project.services.project import ProjectService
 from autostack_engine.utils.database.models.project.models import Project
 from autostack_engine.utils.database.models.components.models import Component, Connection
@@ -229,7 +233,126 @@ class ProjectQuery:
                 error=str(e),
                 message="Failed to fetch project architecture"
             )
+               
+    @strawberry.field
+    async def fetch_production_environment(self, project_id: str) -> ProjectArchitectureResponse:
+        try:
+            db = DatabaseManager()
+            await db.connect([Project, Connection, Component, Technology])
+            project = await Project.get(project_id)
+            client = docker.from_env()
             
+            if not project:
+                return ProjectArchitectureResponse(
+                    success=False,
+                    error="Project not found",
+                    message=f"No project found with ID: {project_id}"
+                )
+            
+            # Build technologies list
+            project_directory = project.metadata.directory
+            compose_files = [
+                os.path.join(project_directory, 'docker-compose.yml'),
+                os.path.join(project_directory, 'docker-compose.yaml'),
+                os.path.join(project_directory, 'compose.yml'),
+                os.path.join(project_directory, 'compose.yaml')
+            ]
+            
+            # Check if any docker-compose file exists
+            existing_compose_files = []
+            for compose_file in compose_files:
+                if os.path.exists(compose_file):
+                    existing_compose_files.append(compose_file)
+            
+            if not existing_compose_files:
+                production_service = ProductionService()
+                success, compose_path, error_message = await production_service.generate_docker_compose(project_id)
+                
+                if not success:
+                    return ProjectArchitectureResponse(
+                        success=False,
+                        error="Failed to generate docker-compose.yml",
+                        message=error_message or "Could not generate docker-compose.yml"
+                    )
+                
+                # Update the list of existing files after generation
+                if os.path.exists(compose_path):
+                    existing_compose_files.append(compose_path)
+                else:
+                    return ProjectArchitectureResponse(
+                        success=False,
+                        error="Generated file not found",
+                        message=f"Generated docker-compose.yml not found at {compose_path}"
+                    )
+            
+            # At this point, we have at least one compose file
+            compose_file = existing_compose_files[0]
+            
+            # Query containers for this project
+            containers_info = []
+            try:
+                # List all containers
+                all_containers = client.containers.list(all=True)
+                project_name = os.path.basename(project_directory)
+                
+                # Filter containers for this project (assuming naming convention: projectname_servicename)
+                project_containers = []
+                for container in all_containers:
+                    container_name = container.name
+                    # Check if container name starts with project name
+                    if container_name.startswith(project_name):
+                        project_containers.append(container)
+                
+                # Get container details
+                for container in project_containers:
+                    container_info = {
+                        'name': container.name,
+                        'status': container.status,
+                        'image': container.image.tags[0] if container.image.tags else 'unknown',
+                        'ports': container.ports or [],
+                        'id': container.id[:12]
+                    }
+                    containers_info.append(container_info)
+                    
+            except Exception as docker_error:
+                print(f"Error querying Docker containers: {docker_error}")
+                containers_info = [{
+                    'error': str(docker_error),
+                    'message': 'Failed to query Docker containers'
+                }]
+            
+            # Prepare architecture data
+            architecture_data = {
+                'project_id': project_id,
+                'project_name': project.name,
+                'compose_file': compose_file,
+                'compose_file_exists': True,
+                'containers': containers_info,
+                'container_count': len(containers_info),
+                'project_directory': project_directory,
+                'generated': len(existing_compose_files) == 1  # True if we just generated it
+            }
+            
+            # Determine status message
+            if len(containers_info) == 0:
+                status_message = "Docker-compose.yml exists but no containers are running. Use 'docker-compose up -d' to start."
+            else:
+                running_containers = [c for c in containers_info if c.get('status') == 'running']
+                status_message = f"Found {len(running_containers)}/{len(containers_info)} containers running."
+            
+            return ProjectArchitectureResponse(
+                success=True,
+                data=architecture_data,
+                message=status_message
+            )
+            
+        except Exception as e:
+            print(traceback.format_exc())
+            return ProjectArchitectureResponse(
+                success=False,
+                error=str(e),
+                message="Failed to fetch project architecture"
+            )
     
     
         

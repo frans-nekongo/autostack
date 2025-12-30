@@ -25,9 +25,17 @@ export class ChatEffects {
                 chatId: result.chatId,
                 schema: result.schema,
               });
+            } else if (result.isValidationError) {
+              return ChatActions.generateArchitectureFailure({
+                error: result.error || 'Validation error',
+                isValidationError: true,
+                unsupportedItems: result.unsupportedItems as any,
+                supportedItems: result.supportedItems as any,
+              });
             } else {
               return ChatActions.generateArchitectureFailure({
                 error: result.error || 'Failed to generate architecture',
+                isValidationError: false,
               });
             }
           }),
@@ -35,6 +43,45 @@ export class ChatEffects {
             of(
               ChatActions.generateArchitectureFailure({
                 error: error.message || 'An error occurred',
+                isValidationError: false,
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+
+  regenerateArchitecture$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ChatActions.regenerateArchitecture),
+      switchMap(({ chatId, description }) =>
+        this.chatService.regenerateArchitecture(chatId, description).pipe(
+          map((result) => {
+            if (result.success && result.schema) {
+              return ChatActions.regenerateArchitectureSuccess({
+                chatId: chatId,
+                schema: result.schema,
+              });
+            } else if (result.isValidationError) {
+              return ChatActions.regenerateArchitectureFailure({
+                error: result.error || 'Validation error',
+                isValidationError: true,
+                unsupportedItems: result.unsupportedItems,
+                supportedItems: result.supportedItems,
+              });
+            } else {
+              return ChatActions.regenerateArchitectureFailure({
+                error: result.error || 'Failed to regenerate architecture',
+                isValidationError: false,
+              });
+            }
+          }),
+          catchError((error) =>
+            of(
+              ChatActions.regenerateArchitectureFailure({
+                error: error.message || 'An error occurred',
+                isValidationError: false,
               })
             )
           )

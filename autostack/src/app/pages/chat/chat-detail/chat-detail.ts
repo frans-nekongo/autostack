@@ -2,7 +2,14 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { provideIcons, NgIcon } from '@ng-icons/core';
 import { heroPaperAirplane } from '@ng-icons/heroicons/outline';
 import { ChatFacade } from '../../../state/chat/chat.facade';
-import { BehaviorSubject, Observable, Subject, take, takeUntil } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  Observable,
+  Subject,
+  take,
+  takeUntil,
+} from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -107,6 +114,9 @@ export class ChatDetail implements OnInit, OnDestroy {
   currentChat$ = this.chatFacade.currentChat$;
   loading$ = this.chatFacade.loading$;
   error$ = this.chatFacade.error$;
+  isValidationError$ = this.chatFacade.isValidationError$;
+  unsupportedItems$ = this.chatFacade.unsupportedItems$;
+  supportedItems$ = this.chatFacade.supportedItems$;
   activeOperationsCount$ = this.operationsFacade.activeOperationsCount$;
   isCreating = false;
 
@@ -126,6 +136,14 @@ export class ChatDetail implements OnInit, OnDestroy {
   editSection: 'project' | 'components' | 'connections' = 'project';
   editedSchema!: ProjectSchema;
 
+  showErrorModal = false;
+  editedPrompt = '';
+  validationErrorMessage = '';
+  unsupportedTechnologies: string[] = [];
+  unsupportedFrameworks: string[] = [];
+  supportedTechnologiesFormatted = '';
+  supportedFrameworksFormatted = '';
+
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const chatId = params['chatid'];
@@ -135,7 +153,7 @@ export class ChatDetail implements OnInit, OnDestroy {
         this.editSection = 'project';
         this.editedSchema = null as any;
         this.projectCreateMessage = '';
-        
+
         this.chatFacade.loadChat(chatId);
       }
     });
@@ -147,11 +165,69 @@ export class ChatDetail implements OnInit, OnDestroy {
         this.editedSchema = JSON.parse(JSON.stringify(chat.initialSchema));
       }
     });
+
+    this.isValidationError$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isValidationError) => {
+        if (isValidationError) {
+          this.showErrorModal = true;
+
+          // Get the current prompt
+          this.currentChat$.pipe(take(1)).subscribe((chat) => {
+            this.editedPrompt = chat?.prompt || '';
+          });
+        }
+      });
+
+    // Subscribe to error details
+    combineLatest([this.error$, this.unsupportedItems$, this.supportedItems$])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([error, unsupported, supported]) => {
+        if (error && unsupported && supported) {
+          this.validationErrorMessage = error;
+          this.unsupportedTechnologies = unsupported.technologies || [];
+          this.unsupportedFrameworks = unsupported.frameworks || [];
+
+          // Format supported items for display
+          if (supported.technologies) {
+            this.supportedTechnologiesFormatted = Object.entries(
+              supported.technologies
+            )
+              .map(
+                ([category, techs]) =>
+                  `${category}: ${(techs as string[]).join(', ')}`
+              )
+              .join('\n');
+          }
+
+          if (supported.frameworks) {
+            this.supportedFrameworksFormatted = supported.frameworks.join(', ');
+          }
+        }
+      });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  closeErrorModal(): void {
+    this.showErrorModal = false;
+    this.chatFacade.clearValidationError();
+  }
+
+  retryWithUpdatedPrompt(): void {
+    if (!this.editedPrompt.trim()) {
+      return;
+    }
+
+    this.currentChat$.pipe(take(1)).subscribe((chat) => {
+      if (chat?.id) {
+        this.chatFacade.regenerateArchitecture(chat.id, this.editedPrompt);
+        this.showErrorModal = false;
+      }
+    });
   }
 
   getIcon(framework: string): string {
@@ -307,8 +383,12 @@ export class ChatDetail implements OnInit, OnDestroy {
     this.projectCreateMessage = message;
   }
 
-  getAvailableFrameworks(technology: string): Array<{ value: string; label: string }> {
-    const frameworkMap: { [key: string]: Array<{ value: string; label: string }> } = {
+  getAvailableFrameworks(
+    technology: string
+  ): Array<{ value: string; label: string }> {
+    const frameworkMap: {
+      [key: string]: Array<{ value: string; label: string }>;
+    } = {
       nodejs: [
         { value: 'none', label: 'None' },
         { value: 'express', label: 'Express' },
@@ -325,42 +405,66 @@ export class ChatDetail implements OnInit, OnDestroy {
         { value: 'flask', label: 'Flask' },
         { value: 'fastapi', label: 'FastAPI' },
       ],
-      java: [
-        { value: 'none', label: 'None' },
-      ],
-      go: [
-        { value: 'none', label: 'None' },
-      ],
-      postgresql: [
-        { value: 'none', label: 'None' },
-      ],
-      mysql: [
-        { value: 'none', label: 'None' },
-      ],
-      mongodb: [
-        { value: 'none', label: 'None' },
-      ],
-      sqlite: [
-        { value: 'none', label: 'None' },
-      ],
-      redis: [
-        { value: 'none', label: 'None' },
-      ],
-      kafka: [
-        { value: 'none', label: 'None' },
-      ],
+      java: [{ value: 'none', label: 'None' }],
+      go: [{ value: 'none', label: 'None' }],
+      postgresql: [{ value: 'none', label: 'None' }],
+      mysql: [{ value: 'none', label: 'None' }],
+      mongodb: [{ value: 'none', label: 'None' }],
+      sqlite: [{ value: 'none', label: 'None' }],
+      redis: [{ value: 'none', label: 'None' }],
+      kafka: [{ value: 'none', label: 'None' }],
     };
 
-    return frameworkMap[technology.toLowerCase()] || [{ value: 'none', label: 'None' }];
+    return (
+      frameworkMap[technology.toLowerCase()] || [
+        { value: 'none', label: 'None' },
+      ]
+    );
   }
 
   onTechnologyChange(component: any): void {
     // Reset framework to 'none' when technology changes
-    const availableFrameworks = this.getAvailableFrameworks(component.technology);
+    const availableFrameworks = this.getAvailableFrameworks(
+      component.technology
+    );
     // Check if current framework is still valid for the new technology
-    const isFrameworkValid = availableFrameworks.some(f => f.value === component.framework);
+    const isFrameworkValid = availableFrameworks.some(
+      (f) => f.value === component.framework
+    );
     if (!isFrameworkValid) {
       component.framework = 'none';
     }
+  }
+
+  openEditPromptModal(): void {
+    this.currentChat$.pipe(take(1)).subscribe((chat) => {
+      if (chat) {
+        this.editedPrompt = chat.prompt;
+        this.validationErrorMessage = chat.validationError?.message || '';
+        this.unsupportedTechnologies =
+          chat.validationError?.unsupported_technologies || [];
+        this.unsupportedFrameworks =
+          chat.validationError?.unsupported_frameworks || [];
+        this.supportedTechnologiesFormatted = this.formatSupportedTechnologies(
+          chat.validationError?.supported_technologies
+        );
+        this.supportedFrameworksFormatted =
+          chat.validationError?.supported_frameworks?.join(', ') || '';
+        this.showErrorModal = true;
+      }
+    });
+  }
+
+  private formatSupportedTechnologies(
+    technologies?: Record<string, string[]>
+  ): string {
+    if (!technologies) return '';
+    return Object.entries(technologies)
+      .map(([category, techs]) => `${category}: ${techs.join(', ')}`)
+      .join('\n');
+  }
+
+  objectKeys(obj: any): string[] {
+    return obj ? Object.keys(obj) : [];
   }
 }

@@ -24,6 +24,9 @@ export class ChatFacade {
   hasError$ = this.store.select(ChatSelectors.selectHasError);
   hasCurrentChat$ = this.store.select(ChatSelectors.selectHasCurrentChat);
   pendingPrompt$ = this.store.select(ChatSelectors.selectPendingPrompt);
+  isValidationError$ = this.store.select(ChatSelectors.selectIsValidationError);
+  unsupportedItems$ = this.store.select(ChatSelectors.selectUnsupportedItems);
+  supportedItems$ = this.store.select(ChatSelectors.selectSupportedItems);
 
   // Actions
 
@@ -42,6 +45,15 @@ export class ChatFacade {
     this.store.dispatch(ChatActions.generateArchitecture({ description }));
   }
 
+  regenerateArchitecture(chatId: string, description: string): void {
+    this.store.dispatch(
+      ChatActions.regenerateArchitecture({ chatId, description })
+    );
+  }
+
+  clearValidationError(): void {
+    this.store.dispatch(ChatActions.clearValidationError());
+  }
   /**
    * Load a specific chat by ID
    */

@@ -118,10 +118,38 @@ export const selectUpdating = createSelector(
   (state: IProjectState) => state.loading // Reusing loading state for updates
 );
 
-// Update the combined loading state to include updating:
+export const selectCurrentProductionEnvironment = createSelector(
+  selectProjectStore,
+  (state: IProjectState) => state.currentProductionEnvironment
+);
+
+export const selectLoadingProductionEnvironment = createSelector(
+  selectProjectStore,
+  (state: IProjectState) => state.loadingProductionEnvironment
+);
+
+// Derived selectors for production environment
+export const selectProductionContainers = createSelector(
+  selectCurrentProductionEnvironment,
+  (environment) => environment?.containers
+);
+
+export const selectComposeFileExists = createSelector(
+  selectCurrentProductionEnvironment,
+  (environment) => environment?.compose_file_exists
+);
+
+export const selectContainerCount = createSelector(
+  selectCurrentProductionEnvironment,
+  (environment) => environment?.container_count
+);
+
+// Update the combined loading state:
 export const selectIsLoading = createSelector(
   selectLoading,
   selectLoadingArchitecture,
   selectCreating,
-  (loading, loadingArch, creating) => loading || loadingArch || creating
+  selectLoadingProductionEnvironment, // Add this
+  (loading, loadingArch, creating, loadingProd) =>
+    loading || loadingArch || creating || loadingProd
 );
