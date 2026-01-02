@@ -1,6 +1,9 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { provideIcons, NgIcon } from '@ng-icons/core';
-import { heroPaperAirplane } from '@ng-icons/heroicons/outline';
+import {
+  heroClipboardDocument,
+  heroPaperAirplane,
+} from '@ng-icons/heroicons/outline';
 import { ChatFacade } from '../../../state/chat/chat.facade';
 import {
   BehaviorSubject,
@@ -41,6 +44,7 @@ import {
 } from '../../../services/project/project-service';
 import { ProjectFacade } from '../../../state/project/project.facade';
 import { OperationsFacade } from '../../../state/operations/operations.facade';
+import { ChatService } from '../../../services/chat/chat-service';
 
 interface ProjectSchema {
   project: {
@@ -99,6 +103,8 @@ interface ProjectSchema {
       diPythonOriginal,
       diJavaOriginal,
       diGoOriginal,
+      heroClipboardDocument,
+      heroPaperAirplane
     }),
   ],
 })
@@ -108,8 +114,8 @@ export class ChatDetail implements OnInit, OnDestroy {
   private operationsFacade = inject(OperationsFacade);
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
-  private projectService = inject(ProjectService);
-  private router = inject(Router);
+  private chatService = inject(ChatService);
+
 
   currentChat$ = this.chatFacade.currentChat$;
   loading$ = this.chatFacade.loading$;
@@ -143,6 +149,11 @@ export class ChatDetail implements OnInit, OnDestroy {
   unsupportedFrameworks: string[] = [];
   supportedTechnologiesFormatted = '';
   supportedFrameworksFormatted = '';
+
+  selectedRating: number | null = null;
+  ratingComment: string = '';
+  ratingMessage: string = '';
+  ratingSuccess: boolean = false;
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -467,4 +478,36 @@ export class ChatDetail implements OnInit, OnDestroy {
   objectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
   }
+
+  submitRating(): void {
+  if (!this.selectedRating || !this.currentChat$) {
+    return;
+  }
+
+  this.currentChat$.pipe(take(1)).subscribe(chat => {
+    if (!chat?.id) return;
+
+    this.chatService.rateSchema(chat.id, this.selectedRating!, this.ratingComment || null)
+      .subscribe({
+        next: (response) => {
+          this.ratingSuccess = response.success;
+          this.ratingMessage = response.success 
+            ? (response.message || 'Thank you for rating the generated schema!')
+            : (response.error || 'Failed to submit rating');
+          
+          if (response.success) {
+            // Optionally clear the form after successful submission
+            setTimeout(() => {
+              this.ratingMessage = '';
+            }, 5000);
+          }
+        },
+        error: (error) => {
+          this.ratingSuccess = false;
+          this.ratingMessage = 'An error occurred while submitting your rating';
+          console.error('Rating error:', error);
+        }
+      });
+  });
+}
 }

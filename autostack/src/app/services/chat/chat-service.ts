@@ -73,6 +73,16 @@ const REGENERATE_ARCHITECTURE = gql`
   }
 `;
 
+const RATE_SCHEMA = gql`
+  mutation RateSchema($chatId: String!, $score: Int!, $comment: String) {
+    rateSchema(chatId: $chatId, score: $score, comment: $comment) {
+      success
+      message
+      error
+    }
+  }
+`;
+
 export interface GenerateArchitectureResponse {
   success: boolean;
   schema?: any;
@@ -93,6 +103,12 @@ export interface GenerateArchitectureResponse {
 
 export interface DeleteChatResponse {
   success: boolean;
+  error?: string;
+}
+
+export interface RateSchemaResponse {
+  success: boolean;
+  message?: string;
   error?: string;
 }
 
@@ -184,6 +200,26 @@ export class ChatService {
             throw new Error(result.error.message);
           }
           return result.data!.deleteChat;
+        })
+      );
+  }
+
+  rateSchema(
+    chatId: string,
+    score: number,
+    comment: string | null
+  ): Observable<RateSchemaResponse> {
+    return this.apollo
+      .mutate<{ rateSchema: RateSchemaResponse }>({
+        mutation: RATE_SCHEMA,
+        variables: { chatId, score, comment },
+      })
+      .pipe(
+        map((result) => {
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+          return result.data!.rateSchema;
         })
       );
   }

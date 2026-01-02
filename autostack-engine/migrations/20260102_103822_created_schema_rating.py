@@ -1,13 +1,14 @@
 """
-Migration: created activity log
-Created: 2025-12-10T19:58:32.508363
+Migration: created schema rating
+Created: 2026-01-02T10:38:22.277697
 """
+
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 import logging
 
-from autostack_engine.utils.database.models.activities.models import ActivityLog
+from autostack_engine.utils.database.models.ai.models import SchemaRating
 
 
 
@@ -18,7 +19,7 @@ async def up():
     Apply the migration
     """
     # Add your migration logic here
-    logger.info('Applying migration: Created activity log')
+    logger.info('Applying migration: Created Schema Rating')
     mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     database_name = os.getenv("DATABASE_NAME", "autostack")
     
@@ -29,7 +30,7 @@ async def up():
     await init_beanie(
         database=database,
         document_models=[
-            ActivityLog
+            SchemaRating
         ]
     )
     

@@ -5,7 +5,7 @@ import traceback
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from autostack_engine.utils.database.models.ai.models import ProjectChat
+from autostack_engine.utils.database.models.ai.models import ProjectChat, SchemaRating
 from autostack_engine.utils.database.mongo_client import DatabaseManager
 from autostack_engine.utils.orchestration.models import BaseService
 
@@ -627,5 +627,54 @@ class AIService(BaseService):
             error_msg = f"Error updating chat: {str(e)}"
             self.log_error(error_msg)
             return False, error_msg
+        
+        
+    async def rate_chat(self, chat_id: str, score: int, comment: str) -> tuple[bool, Optional[str], Optional[str]]:
+        """
+        Rate an existing chat.
+        
+        Args:
+            chat_id: The chat ID to update
+            score: the score for the generated 
+            comment: any comments on the schema
+            
+            
+        Returns:
+            tuple: (success: bool, error_message: Optional[str])
+        """
+        try:
+            db = DatabaseManager()
+            await db.connect([SchemaRating])
+            
+            rating = await SchemaRating.get(chat_id)
+            if not rating:
+                schema_rating = SchemaRating(
+                    id=UUID(chat_id),
+                    score=score,
+                    comment=comment
+                )
+                
+                await schema_rating.insert()
+                
+                self.log_info(f"Saved rating for chat with ID: {chat_id}")
+                return (True, "Thank you for rating the generated schema", None)
+            else:
+                # Update rating
+                if score:
+                    rating.score = score
+                    
+                if comment:
+                    rating.comment = comment
+                
+                rating.updated_at = datetime.now()
+                await rating.save()
+            
+                self.log_info(f"Updated rating '{chat_id}'")
+                return (True, "Thank you for rating the generated schema", "None")
+            
+        except Exception as e:
+            error_msg = f"Error rating chat: {str(e)}"
+            self.log_error(error_msg)
+            return (False, None, error_msg)
     
    

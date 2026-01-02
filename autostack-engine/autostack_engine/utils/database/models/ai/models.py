@@ -25,3 +25,19 @@ class ProjectChat(Document):
         indexes = [
             IndexModel([("created_at", -1)]),
         ]
+        
+
+class SchemaRating(Document):
+    id: UUID = Field(default_factory=uuid.uuid4, alias="_id")
+    score: int
+    comment: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    class Settings:
+        name= "schema_rating"
+        indexes = [
+            IndexModel([("created_at", -1)]),
+        ]
+    

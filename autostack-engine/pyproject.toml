@@ -36,13 +36,8 @@ dependencies = [
 ]
 
 [project.scripts]
-consumers = "autostack_engine.scripts.run_consumers:main"
 gateway = "autostack_engine.scripts.run_gateway:main"
-service = "autostack_engine.scripts.run_service:main"
-all = "autostack_engine.scripts.run_all:main"
 setup-database = "autostack_engine.scripts.setup_database:main"
-setup-kafka = "autostack_engine.scripts.setup_kafka:main"
-health-check = "autostack_engine.scripts.health_check:main"
 migrate-database = "autostack_engine.scripts.migrate_database:main"
 create-migration = "autostack_engine.scripts.create_migration:main"
 seed-database = "autostack_engine.scripts.seed_database:main"

@@ -1,3 +1,4 @@
+from git import Optional
 import strawberry
 import structlog
 
@@ -8,6 +9,15 @@ from autostack_engine.services.project.services.project import ProjectService
 
 logger = structlog.get_logger()
 
+
+@strawberry.type
+class CreateSchemaRatingResponse:
+    """Response type for schema rating"""
+    success: bool
+    message: Optional[str]
+    error: Optional[str]
+    
+    
 @strawberry.type
 class ModelMutation:
     
@@ -37,3 +47,25 @@ class ModelMutation:
             error_msg = f"Error deleting chat: {e}"
             logger.error(error_msg)
             return DeleteChatResponse(success=False, error=error_msg)
+        
+        
+    @strawberry.mutation
+    async def rate_schema(self, chat_id: str, score: int, comment: Optional[str]) -> CreateSchemaRatingResponse:
+        """
+        Rate a chat by ID.
+        
+        Args:
+            chat_id: The chat ID to rate
+            
+        Returns:
+            CreateSchemaRatingResponse indicating success or failure
+        """
+        try:
+            ai_service = AIService()
+            success, message, error = await ai_service.rate_chat(chat_id, score, comment)
+            return CreateSchemaRatingResponse(success=success, message=message, error=error)
+            
+        except Exception as e:
+            error_msg = f"Error rating chat: {e}"
+            logger.error(error_msg)
+            return CreateSchemaRatingResponse(success=False, message=None, error=error_msg)

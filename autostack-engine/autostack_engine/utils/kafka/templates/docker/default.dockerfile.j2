@@ -1,9 +1,0 @@
-FROM {{ base_image|default('alpine:latest') }}
-
-WORKDIR /app
-
-COPY . .
-
-EXPOSE {{ port|default('8080') }}
-
-CMD ["sh"]
