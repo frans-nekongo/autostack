@@ -97,7 +97,10 @@ After testing the system, you can export your data for analysis:
 
 1. Navigate to the MongoDB Compass UI at [http://127.0.0.1:8081/](http://127.0.0.1:8081/)
 2. Export the following collections:
-   - Project prompts
-   - System logs
+   - project_chat
+   - schema_rating
+   - service_logs
    - Any other relevant database information you're comfortable sharing
-3. Upload the exported data to the provided drive link
+3. Zip all exported files and upload the exported data to [this survey](https://forms.gle/1vYwG1y1dyhiKy2Y9)
+
+Thank you for participating in this research
