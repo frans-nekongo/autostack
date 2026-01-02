@@ -3,7 +3,7 @@ import { OperationStatus } from "../../services/operations/operations-service";
 
 export interface Operation {
   id: string;
-  type: 'PROJECT_CREATION'; // Can add more types later
+  type: 'PROJECT_CREATION'; 
   status: OperationStatus;
   message: string;
   progress: number;
