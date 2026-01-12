@@ -210,9 +210,10 @@ def main_menu():
         print(f"  {YELLOW}2.{NC} Run Application (Launch Backend + Frontend)")
         print(f"  {YELLOW}3.{NC} {CYAN}Self-Heal / Diagnostics (Process Killing, DB Test){NC}")
         print(f"  {YELLOW}4.{NC} System Maintenance (Prune Docker)")
+        print(f"  {YELLOW}5.{NC} {GREEN}Export Project Data (For Research Submit){NC}")
         print(f"  {YELLOW}0.{NC} Exit")
         
-        choice = input(f"\n{BLUE}Select an option (0-4): {NC}")
+        choice = input(f"\n{BLUE}Select an option (0-5): {NC}")
         
         if choice == '1':
             run_setup()
@@ -243,6 +244,37 @@ def main_menu():
                 print(f"\n{RED}>>> Cleaning up...{NC}")
                 subprocess.run(["docker", "system", "prune", "-af", "--volumes"])
                 input("\nCleanup finished. Press Enter to return...")
+        elif choice == '5':
+            export_dir = "exports"
+            os.makedirs(export_dir, exist_ok=True)
+            timestamp = int(time.time())
+            zip_name = f"autostack_export_{timestamp}.zip"
+            
+            print(f"\n{GREEN}>>> Exporting collections from MongoDB...{NC}")
+            collections = ["project_chat", "schema_rating", "service_logs"]
+            
+            for coll in collections:
+                print(f"    Exporting {coll}...")
+                try:
+                    subprocess.run([
+                        "docker", "exec", "mongo", "mongoexport", 
+                        "--db", "autostack", 
+                        "--collection", coll, 
+                        "--out", f"/tmp/{coll}.json",
+                        "--jsonArray"
+                    ], check=True, capture_output=True)
+                    subprocess.run([
+                        "docker", "cp", f"mongo:/tmp/{coll}.json", os.path.join(export_dir, f"{coll}.json")
+                    ], check=True)
+                except Exception as e:
+                    print(f"{RED}    Failed to export {coll}: {e}")
+            
+            print(f"\n{GREEN}>>> Creating zip archive...{NC}")
+            shutil.make_archive(zip_name.replace(".zip", ""), 'zip', export_dir)
+            
+            print(f"\n{GREEN}Success! Data exported to: {NC}{zip_name}")
+            print(f"{YELLOW}Please upload this file to: https://forms.gle/1vYwG1y1dyhiKy2Y9{NC}")
+            input("\nPress Enter to return...")
         elif choice == '0':
             print(f"\n{GREEN}Goodbye!{NC}")
             break
