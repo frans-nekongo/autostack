@@ -262,10 +262,15 @@ def main_menu():
             zip_name = f"autostack_export_{timestamp}.zip"
             
             print(f"\n{GREEN}>>> Exporting collections from MongoDB...{NC}")
-            collections = ["project_chat", "schema_rating", "service_logs"]
+            collections = [
+                "project_chat", "schema_rating", "service_logs", 
+                "activity_logs", "projects", "components", 
+                "environments", "connections", "technology_configs",
+                "project_configs"
+            ]
             
             env_vars = get_env_vars()
-            mongo_user = env_vars.get("MONGO_USER", "admin")
+            mongo_user = env_vars.get("MONGO_USER", "root")
             mongo_pass = env_vars.get("MONGO_PASSWORD", "")
             
             for coll in collections:
