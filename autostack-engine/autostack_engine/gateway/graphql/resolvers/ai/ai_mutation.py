@@ -4,7 +4,7 @@ from typing import Optional
 import strawberry
 import structlog
 
-from autostack_engine.gateway.graphql.resolvers.ai.ai_query import DeleteChatResponse
+from autostack_engine.gateway.graphql.resolvers.ai.ai_query import DeleteChatResponse, JobCreated
 from autostack_engine.services.ai.services.ai import AIService
 from autostack_engine.services.project.services.project import ProjectService
 
@@ -28,7 +28,6 @@ class ModelMutation:
         """
         Initiate project architecture generation asynchronously.
         """
-        from autostack_engine.gateway.graphql.resolvers.ai.ai_query import JobCreated
         operation_store = info.context["operation_store"]
         
         try:
