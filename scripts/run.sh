@@ -16,10 +16,20 @@ BASE_DIR="$SCRIPT_DIR/.."
 
 echo -e "${GREEN}Starting Autostack...${NC}"
 
-# 1. Check if Docker is running
+# 1. Check if Docker is running and set DOCKER_HOST
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}Error: Docker is not running. Please start Docker and try again.${NC}"
     exit 1
+fi
+
+# Set DOCKER_HOST based on active context if on macOS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    ACTIVE_CONTEXT=$(docker context show 2>/dev/null || echo "default")
+    DOCKER_ENDPOINT=$(docker context inspect "$ACTIVE_CONTEXT" --format '{{.Endpoints.docker.Host}}' 2>/dev/null)
+    if [ -n "$DOCKER_ENDPOINT" ]; then
+        echo -e "${CYAN}Info: Setting DOCKER_HOST to $DOCKER_ENDPOINT (Context: $ACTIVE_CONTEXT)${NC}"
+        export DOCKER_HOST="$DOCKER_ENDPOINT"
+    fi
 fi
 
 # 2. Check for .env file
