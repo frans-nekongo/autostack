@@ -4,7 +4,7 @@ from typing import Optional
 import strawberry
 import structlog
 
-from autostack_engine.gateway.graphql.resolvers.ai.ai_query import CreateProjectResponse, DeleteChatResponse
+from autostack_engine.gateway.graphql.resolvers.ai.ai_query import DeleteChatResponse
 from autostack_engine.services.ai.services.ai import AIService
 from autostack_engine.services.project.services.project import ProjectService
 
