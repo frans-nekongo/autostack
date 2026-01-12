@@ -240,7 +240,17 @@ class ProjectQuery:
             db = DatabaseManager()
             await db.connect([Project, Connection, Component, Technology])
             project = await Project.get(project_id)
-            client = docker.from_env()
+            
+            try:
+                client = docker.from_env()
+                client.ping() # Verify connection
+            except Exception as e:
+                logger.warning(f"Docker not available: {e}")
+                return ProjectArchitectureResponse(
+                    success=False,
+                    error="Docker not available",
+                    message="The Docker daemon is not running or unreachable. Please start Docker to view container status."
+                )
             
             if not project:
                 return ProjectArchitectureResponse(
