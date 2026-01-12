@@ -128,6 +128,72 @@ def run_setup():
     print(f"\n{GREEN}>>> Starting Full Setup...{NC}")
     run_script("setup_autostack.sh")
 
+import socket
+import subprocess
+
+# --- Self-Healing Utilities ---
+
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def kill_process_on_port(port):
+    try:
+        # Use lsof to find the PID
+        output = subprocess.check_output(["lsof", "-t", f"-i:{port}"], stderr=subprocess.STDOUT)
+        pids = output.decode().strip().split('\n')
+        for pid in pids:
+            if pid:
+                print(f"{YELLOW}Found process with PID {pid} on port {port}. Killing...{NC}")
+                subprocess.run(["kill", "-9", pid])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+    except Exception as e:
+        print(f"{RED}Error killing process: {e}{NC}")
+        return False
+
+def diagnostic_check():
+    clear_screen()
+    print(f"{CYAN}--- Auto-Stack Self-Healing Diagnostic ---{NC}\n")
+    
+    # 1. Port Checks
+    for port, name in [(8020, "API Gateway"), (4200, "Frontend")]:
+        if is_port_in_use(port):
+            print(f"{RED}[Conflict]{NC} Port {port} ({name}) is in use.")
+            if input(f"   Would you like to kill the process on port {port}? (y/n): ").lower() == 'y':
+                kill_process_on_port(port)
+        else:
+            print(f"{GREEN}[Clean]{NC} Port {port} ({name}) is available.")
+
+    # 2. Docker Space Check
+    try:
+        docker_stats = subprocess.check_output(["docker", "info", "--format", "{{.MemTotal}}"], stderr=subprocess.STDOUT)
+        print(f"{GREEN}[Active]{NC} Docker is responsive.")
+    except:
+        print(f"{RED}[Error]{NC} Docker is not responsive or not installed.")
+
+    # 3. Database Connectivity (Dependency-free check)
+    print(f"\n{CYAN}Testing Database Connectivity...{NC}")
+    
+    # Check port first
+    if is_port_in_use(27017):
+        print(f"{GREEN}[Success]{NC} MongoDB port (27017) is open.")
+        
+        # Try ping via docker exec
+        try:
+            print(f"   Verifying authentication via Docker...")
+            subprocess.check_output(["docker", "exec", "mongo", "mongosh", "--eval", "db.adminCommand('ping')"], stderr=subprocess.STDOUT)
+            print(f"{GREEN}[Success]{NC} MongoDB authentication verified.")
+        except Exception as e:
+            print(f"{RED}[Failure]{NC} MongoDB auth failed or mongosh missing: {e}")
+            print(f"   Tip: This might be normal if the container is still starting up or using an older mongo version.")
+    else:
+        print(f"{RED}[Failure]{NC} MongoDB port (27017) is NOT responsive.")
+        print(f"   Tip: Run Option (1) to ensure Docker services are up.")
+
+    input("\nDiagnostic complete. Press Enter to return to menu...")
+
 def main_menu():
     while True:
         clear_screen()
@@ -139,11 +205,11 @@ def main_menu():
         needs_setup = backend != "Installed" or frontend != "Installed"
         
         print(f"\n{BLUE}Available Actions:{NC}")
-        setup_label = "Update/Reinstall" if not needs_setup else "Full Project Setup"
+        setup_label = "Update/Reinstall Dependencies" if not needs_setup else "Full Project Setup"
         print(f"  {YELLOW}1.{NC} {setup_label}")
-        print(f"  {YELLOW}2.{NC} Run Application (Backend + Frontend)")
-        print(f"  {YELLOW}3.{NC} Advanced: Cleanup Docker (Prune)")
-        print(f"  {YELLOW}4.{NC} Check Environment Details")
+        print(f"  {YELLOW}2.{NC} Run Application (Launch Backend + Frontend)")
+        print(f"  {YELLOW}3.{NC} {CYAN}Self-Heal / Diagnostics (Process Killing, DB Test){NC}")
+        print(f"  {YELLOW}4.{NC} System Maintenance (Prune Docker)")
         print(f"  {YELLOW}0.{NC} Exit")
         
         choice = input(f"\n{BLUE}Select an option (0-4): {NC}")
@@ -155,19 +221,28 @@ def main_menu():
             if needs_setup:
                 print(f"\n{RED}Warning: Project is not fully installed! Running setup first...{NC}")
                 run_setup()
+            # Before running, check for port conflicts
+            conflict = False
+            for port in [8020, 4200]:
+                if is_port_in_use(port):
+                    print(f"{RED}Error: Port {port} is already in use.{NC}")
+                    conflict = True
+            if conflict:
+                if input("Try to auto-fix conflicts? (y/n): ").lower() == 'y':
+                    diagnostic_check()
+                else:
+                    print(f"{YELLOW}Please close the processes manually and try again.{NC}")
+                    time.sleep(2)
+                    continue
             run_script("run.sh" if platform.system() != "Windows" else "run.ps1")
         elif choice == '3':
+            diagnostic_check()
+        elif choice == '4':
             confirm = input(f"{RED}This will delete ALL unused Docker data. Continue? (y/n): {NC}")
             if confirm.lower() == 'y':
                 print(f"\n{RED}>>> Cleaning up...{NC}")
                 subprocess.run(["docker", "system", "prune", "-af", "--volumes"])
                 input("\nCleanup finished. Press Enter to return...")
-        elif choice == '4':
-            clear_screen()
-            print(f"\n{CYAN}--- Detailed System Check ---{NC}")
-            print_dashboard()
-            check_env() # More detailed env check could be added here
-            input("\nPress Enter to return to menu...")
         elif choice == '0':
             print(f"\n{GREEN}Goodbye!{NC}")
             break
