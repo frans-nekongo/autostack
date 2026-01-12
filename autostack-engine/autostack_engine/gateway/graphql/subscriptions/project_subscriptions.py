@@ -68,6 +68,61 @@ class ProjectSubscription:
             logger.info(f"Cleaning up subscription for operation: {operation_id}")
             await operation_store.cleanup(operation_id, queue)
     
+    @strawberry.subscription
+    async def subscribe_to_job(
+        self,
+        job_id: str,
+        info: Info
+    ) -> AsyncGenerator["JobResult", None]:
+        from autostack_engine.gateway.graphql.resolvers.ai.ai_query import JobResult
+        import json
+        from datetime import datetime
+        
+        operation_store = get_operation_store(info)
+        
+        try:
+            queue = await operation_store.subscribe(job_id)
+        except Exception as e:
+            logger.error(f"Failed to subscribe to job {job_id}: {e}")
+            yield JobResult(
+                id=job_id,
+                status="FAILED",
+                error=str(e),
+                createdAt=datetime.now().isoformat()
+            )
+            return
+
+        try:
+            # We need to adapt the ProjectCreationUpdate from the operation store to JobResult
+            async for update in ProjectSubscription._stream_updates(queue, job_id):
+                # Retrieve the full data from Redis to get the 'result' field if it exists
+                key = f"operation:{job_id}"
+                raw_data = await operation_store.redis.hgetall(key)
+                
+                result_data = None
+                if b'result' in raw_data:
+                    try:
+                        result_data = json.loads(raw_data[b'result'].decode())
+                    except:
+                        pass
+
+                yield JobResult(
+                    id=job_id,
+                    status=update.status.value if hasattr(update.status, 'value') else str(update.status),
+                    result=result_data,
+                    error=update.error,
+                    created_at=raw_data[b'created_at'].decode() if b'created_at' in raw_data else datetime.now().isoformat(),
+                    completed_at=raw_data[b'updated_at'].decode() if b'updated_at' in raw_data else None
+                )
+                
+                if update.status in [
+                    ProjectCreationStatus.COMPLETED,
+                    ProjectCreationStatus.FAILED
+                ]:
+                    break
+        finally:
+            await operation_store.cleanup(job_id, queue)
+
     @staticmethod
     async def _stream_updates(queue, operation_id: str):
         """Helper to stream updates from queue with timeout protection"""
