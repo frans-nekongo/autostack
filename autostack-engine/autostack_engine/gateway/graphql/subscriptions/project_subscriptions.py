@@ -53,21 +53,34 @@ class ProjectSubscription:
                     logger.info(f"Operation {operation_id} finished with status: {update.status}")
                     break
                     
+        except GeneratorExit:
+            # This happens when the client disconnects before we finish
+            logger.info(f"Subscription for {operation_id} closed by client")
         except Exception as e:
-            logger.error(f"Error in subscription stream for {operation_id}: {traceback.format_exc()}")
-            # Yield error update before closing
-            yield ProjectCreationUpdate(
-                operation_id=operation_id,
-                status=ProjectCreationStatus.FAILED,
-                message="Subscription error occurred",
-                progress=0,
-                error=str(e)
-            )
-            print(traceback.format_exc())
+            # Check if this is a disconnection error to avoid noisy logs
+            error_str = str(e).lower()
+            if "disconnect" in error_str or "closed" in error_str:
+                logger.info(f"Subscription connection for {operation_id} was lost: {e}")
+            else:
+                logger.error(f"Error in subscription stream for {operation_id}: {traceback.format_exc()}")
+                # Try to yield error update if possible
+                try:
+                    yield ProjectCreationUpdate(
+                        operation_id=operation_id,
+                        status=ProjectCreationStatus.FAILED,
+                        message="Subscription error occurred",
+                        progress=0,
+                        error=str(e)
+                    )
+                except:
+                    pass
         finally:
             # Clean up subscription resources
             logger.info(f"Cleaning up subscription for operation: {operation_id}")
-            await operation_store.cleanup(operation_id, queue)
+            try:
+                await operation_store.cleanup(operation_id, queue)
+            except Exception as e:
+                logger.warning(f"Error during subscription cleanup for {operation_id}: {e}")
     
     @strawberry.subscription
     async def subscribe_to_job(
@@ -120,8 +133,17 @@ class ProjectSubscription:
                     ProjectCreationStatus.FAILED
                 ]:
                     break
+        except GeneratorExit:
+            logger.info(f"Job subscription for {job_id} closed by client")
+        except Exception as e:
+            error_str = str(e).lower()
+            if "disconnect" not in error_str and "closed" not in error_str:
+                logger.error(f"Error in job subscription {job_id}: {e}")
         finally:
-            await operation_store.cleanup(job_id, queue)
+            try:
+                await operation_store.cleanup(job_id, queue)
+            except Exception as e:
+                logger.warning(f"Error during job subscription cleanup for {job_id}: {e}")
 
     @staticmethod
     async def _stream_updates(queue, operation_id: str):

@@ -83,7 +83,7 @@ def get_git_info(directory: Optional[str]) -> Optional[GitInfo]:
             commits=commits
         )
     except (git.InvalidGitRepositoryError, git.NoSuchPathError):
-        logger.debug(f"No Git repository found at {directory}")
+        # Silent failure for missing git repos as it's common
         return None
     except Exception as e:
         logger.error(f"Error reading Git repository at {directory}: {e}")
