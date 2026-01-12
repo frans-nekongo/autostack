@@ -4,6 +4,7 @@ from strawberry.types import Info
 from typing import AsyncGenerator
 
 from autostack_engine.utils.project.subscription import ProjectCreationStatus, ProjectCreationUpdate
+from autostack_engine.gateway.graphql.resolvers.ai.ai_query import JobResult
 import logging
 logger = logging.getLogger(__name__)
 
@@ -73,8 +74,7 @@ class ProjectSubscription:
         self,
         job_id: str,
         info: Info
-    ) -> AsyncGenerator["JobResult", None]:
-        from autostack_engine.gateway.graphql.resolvers.ai.ai_query import JobResult
+    ) -> AsyncGenerator[JobResult, None]:
         import json
         from datetime import datetime
         
