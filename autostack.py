@@ -57,6 +57,17 @@ def check_env():
             return True, "API Key Missing"
     return True, "OK"
 
+def get_env_vars():
+    env_vars = {}
+    env_path = os.path.join("autostack-engine", ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if "=" in line and not line.startswith("#"):
+                    key, value = line.strip().split("=", 1)
+                    env_vars[key] = value
+    return env_vars
+
 def check_backend():
     # Check for poetry lock and .venv
     engine_dir = "autostack-engine"
@@ -253,16 +264,25 @@ def main_menu():
             print(f"\n{GREEN}>>> Exporting collections from MongoDB...{NC}")
             collections = ["project_chat", "schema_rating", "service_logs"]
             
+            env_vars = get_env_vars()
+            mongo_user = env_vars.get("MONGO_USER", "admin")
+            mongo_pass = env_vars.get("MONGO_PASSWORD", "")
+            
             for coll in collections:
                 print(f"    Exporting {coll}...")
                 try:
-                    subprocess.run([
+                    cmd = [
                         "docker", "exec", "mongo", "mongoexport", 
                         "--db", "autostack", 
                         "--collection", coll, 
                         "--out", f"/tmp/{coll}.json",
                         "--jsonArray"
-                    ], check=True, capture_output=True)
+                    ]
+                    
+                    if mongo_user and mongo_pass:
+                        cmd.extend(["--username", mongo_user, "--password", mongo_pass, "--authenticationDatabase", "admin"])
+                    
+                    subprocess.run(cmd, check=True, capture_output=True)
                     subprocess.run([
                         "docker", "cp", f"mongo:/tmp/{coll}.json", os.path.join(export_dir, f"{coll}.json")
                     ], check=True)
